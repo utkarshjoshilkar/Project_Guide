@@ -2,7 +2,7 @@ package com.studentguide.platform.controller;
 
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
+// import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,7 +24,7 @@ import com.studentguide.platform.service.UserService;
 public class UserController {
 
     private final UserService userService;
-
+    // GET http://localhost:8080/api/users
     /**
      * GET /api/users
      * Returns the list of all registered users.
@@ -42,6 +42,7 @@ public class UserController {
      * If user is not found, UserService throws ResourceNotFoundException
      * which GlobalExceptionHandler converts to 404.
      */
+    // GET http://localhost:8080/api/users/3
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
         UserResponse user = userService.getUserById(id);
@@ -53,6 +54,7 @@ public class UserController {
      * @Valid triggers Bean Validation on UserUpdateRequest.
      * Validation failures are caught by GlobalExceptionHandler → 400 BAD REQUEST.
      */
+    // PUT http://localhost:8080/api/users/3
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> updateUser(
             @PathVariable Long id,

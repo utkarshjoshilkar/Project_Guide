@@ -6,3 +6,4 @@ public class UserAlreadyExistsException extends RuntimeException {
         super("User already exists with email: " + email);
     }
 }
+
