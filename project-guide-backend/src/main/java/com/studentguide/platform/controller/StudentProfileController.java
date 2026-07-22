@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.studentguide.platform.dto.StudentProfileRequest;
 import com.studentguide.platform.dto.StudentProfileResponse;
 import com.studentguide.platform.entity.User;
+import com.studentguide.platform.exception.ResourceNotFoundException;
 import com.studentguide.platform.repository.UserRepository;
 import com.studentguide.platform.service.StudentProfileService;
 
@@ -32,7 +33,7 @@ public class StudentProfileController {
     public ResponseEntity<StudentProfileResponse> createStudentProfile(Authentication authentication,
             @Valid @RequestBody StudentProfileRequest request) {
         User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", authentication.getName()));
 
         StudentProfileResponse response = studentProfileService.createProfile(user.getId(), request);
 
@@ -42,7 +43,7 @@ public class StudentProfileController {
     @GetMapping("/me")
     public ResponseEntity<StudentProfileResponse> getStudentProfile(Authentication authentication) {
         User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", authentication.getName()));
 
         StudentProfileResponse response = studentProfileService.getProfile(user.getId());
 
@@ -53,7 +54,7 @@ public class StudentProfileController {
     public ResponseEntity<StudentProfileResponse> updateStudentProfile(Authentication authentication,
             @Valid @RequestBody StudentProfileRequest request) {
         User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", authentication.getName()));
 
         StudentProfileResponse response = studentProfileService.updateProfile(user.getId(), request);
 
@@ -63,7 +64,7 @@ public class StudentProfileController {
     @DeleteMapping
     public ResponseEntity<Void> deleteProfile(Authentication authentication) {
         User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", authentication.getName()));
 
         studentProfileService.deleteProfile(user.getId());
 

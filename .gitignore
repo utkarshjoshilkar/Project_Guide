@@ -5,3 +5,7 @@ target/
 *.iml
 *.log
 application-local.properties
+
+# Environment secrets - NEVER commit this
+.env
+*.env

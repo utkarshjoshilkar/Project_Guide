@@ -4,9 +4,11 @@ import java.util.List;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.studentguide.platform.dto.MilestoneResponse;
 import com.studentguide.platform.entity.Milestone;
+import com.studentguide.platform.entity.MilestoneStatus;
 import com.studentguide.platform.entity.Project;
 import com.studentguide.platform.entity.Roadmap;
 import com.studentguide.platform.entity.StudentProfile;
@@ -21,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class MilestoneService {
 
     private final MilestoneRepository milestoneRepository;
@@ -64,11 +67,12 @@ public class MilestoneService {
     }
 
     /**
-     * Get all milestones for a roadmap.
+     * GET /api/roadmaps/{roadmapId}/milestones
+     * Returns all milestones for a roadmap, ordered by sequence.
+     * Ownership-checked: the roadmap must belong to the caller's project.
      */
-    public List<MilestoneResponse> getMilestones(
-            String email,
-            Long roadmapId) {
+    @Transactional(readOnly = true)
+    public List<MilestoneResponse> getMilestones(String email, Long roadmapId) {
 
         StudentProfile profile = getProfileByEmail(email);
 
@@ -94,4 +98,35 @@ public class MilestoneService {
                 .toList();
     }
 
+    /**
+     * PATCH /api/roadmaps/{roadmapId}/milestones/{milestoneId}/status?status=COMPLETED
+     * Updates the status of a single milestone (Task module).
+     * Ownership-checked: the milestone must belong to the caller's roadmap/project.
+     */
+    public MilestoneResponse updateMilestoneStatus(
+            String email,
+            Long milestoneId,
+            MilestoneStatus newStatus) {
+
+        StudentProfile profile = getProfileByEmail(email);
+
+        Milestone milestone = milestoneRepository.findById(milestoneId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Milestone",
+                                "id",
+                                milestoneId));
+
+        // Navigate the lazy chain: Milestone → Roadmap → Project → StudentProfile
+        // @Transactional on this method keeps the session alive for these traversals.
+        Project project = milestone.getRoadmap().getProject();
+
+        if (!project.getStudentProfile().getId().equals(profile.getId())) {
+            throw new AccessDeniedException(
+                    "Access denied: this milestone does not belong to you.");
+        }
+
+        milestone.setStatus(newStatus);
+        return toResponse(milestoneRepository.save(milestone));
+    }
 }

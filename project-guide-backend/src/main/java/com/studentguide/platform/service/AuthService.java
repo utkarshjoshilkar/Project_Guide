@@ -2,6 +2,7 @@ package com.studentguide.platform.service;
 
 import java.time.LocalDateTime;
 
+import com.studentguide.platform.exception.InvalidCredentialsException;
 import com.studentguide.platform.exception.UserAlreadyExistsException;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -47,12 +48,12 @@ public class AuthService {
     public AuthResponse login(LoginRequest request){
 
         User user = userRepository.findByEmail(request.getEmail())
-                        .orElseThrow(()-> new RuntimeException("Invalid email or password"));
+                        .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
         
         boolean passwordMatches = passwordEncoder.matches(request.getPassword(),user.getPassword());
 
         if(!passwordMatches){
-            throw new RuntimeException( "Invalid email or password");
+            throw new InvalidCredentialsException("Invalid email or password");
         }
 
         String token = jwtService.generateToken(user);
