@@ -121,6 +121,8 @@ public class DashboardService {
         return completed * 100.0 / total;
     }
 
+
+    
     private StudentProfileResponse mapProfile(StudentProfile profile) {
         return new StudentProfileResponse(
                 profile.getId(),
