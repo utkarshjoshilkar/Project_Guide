@@ -5,6 +5,7 @@ import java.util.Date;
 
 import javax.crypto.SecretKey;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Claims;
@@ -15,10 +16,14 @@ import com.studentguide.platform.entity.User;
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY = "my-project-guide-secret-key-my-project-guide-secret-key";
+    @Value("${jwt.secret}")
+    private String secretKey;
+
+    @Value("${jwt.expiration-ms}")
+    private long expirationMs;
 
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+        return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateToken(User user) {
@@ -30,7 +35,7 @@ public class JwtService {
                 .claim("userId", user.getId())
                 .claim("role", user.getRole())
                 .issuedAt(new Date(currentTimeMillis))
-                .expiration(new Date(currentTimeMillis + 1000 * 60 * 60 * 24))
+                .expiration(new Date(currentTimeMillis + expirationMs))
                 .signWith(getSigningKey())
                 .compact();
     }

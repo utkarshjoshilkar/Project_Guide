@@ -3,6 +3,8 @@ package com.studentguide.platform.service;
 import com.studentguide.platform.dto.StudentProfileRequest;
 import com.studentguide.platform.dto.StudentProfileResponse;
 import com.studentguide.platform.entity.StudentProfile;
+import com.studentguide.platform.exception.ResourceNotFoundException;
+import com.studentguide.platform.exception.StudentProfileAlreadyExistsException;
 import com.studentguide.platform.repository.StudentProfileRepository;
 import com.studentguide.platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,16 +16,16 @@ import java.time.LocalDateTime;
 public class StudentProfileService {
 
     private final StudentProfileRepository studentProfileRepository;
-    private final UserRepository userRepository; // kept for user-existence validation
+    private final UserRepository userRepository;
 
     public StudentProfileResponse createProfile(Long userId, StudentProfileRequest request) {
 
         // Validate the user exists before creating a profile
         userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
         if (studentProfileRepository.existsByUserId(userId)) {
-            throw new RuntimeException("Student profile already exists");
+            throw new StudentProfileAlreadyExistsException(userId);
         }
 
         StudentProfile profile = new StudentProfile();
@@ -50,7 +52,7 @@ public class StudentProfileService {
     public StudentProfileResponse getProfile(Long userId) {
 
         StudentProfile profile = studentProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Student profile not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("StudentProfile", "userId", userId));
 
         return mapToResponse(profile);
     }
@@ -58,7 +60,7 @@ public class StudentProfileService {
     public StudentProfileResponse updateProfile(Long userId, StudentProfileRequest request) {
 
         StudentProfile profile = studentProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Student profile not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("StudentProfile", "userId", userId));
 
         profile.setCollege(request.getCollege());
         profile.setBranch(request.getBranch());
@@ -80,7 +82,7 @@ public class StudentProfileService {
     public void deleteProfile(Long userId) {
 
         StudentProfile profile = studentProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Student profile not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("StudentProfile", "userId", userId));
 
         studentProfileRepository.delete(profile);
     }

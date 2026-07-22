@@ -2,6 +2,7 @@ package com.studentguide.platform.service;
 
 import java.util.List;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import com.studentguide.platform.dto.ProjectRequest;
@@ -105,7 +106,7 @@ public class ProjectService {
 
         // Ownership check — 403 if the project belongs to someone else.
         if (!project.getStudentProfile().getId().equals(profile.getId())) {
-            throw new RuntimeException("Access denied: this project does not belong to you.");
+            throw new AccessDeniedException("Access denied: this project does not belong to you.");
         }
 
         return toResponse(project);
@@ -123,7 +124,7 @@ public class ProjectService {
                 .orElseThrow(() -> new ResourceNotFoundException("Project", "id", projectId));
 
         if (!project.getStudentProfile().getId().equals(profile.getId())) {
-            throw new RuntimeException("Access denied: this project does not belong to you.");
+            throw new AccessDeniedException("Access denied: this project does not belong to you.");
         }
 
         project.setTitle(request.getTitle());
@@ -149,7 +150,7 @@ public class ProjectService {
                 .orElseThrow(() -> new ResourceNotFoundException("Project", "id", projectId));
 
         if (!project.getStudentProfile().getId().equals(profile.getId())) {
-            throw new RuntimeException("Access denied: this project does not belong to you.");
+            throw new AccessDeniedException("Access denied: this project does not belong to you.");
         }
 
         project.setStatus(newStatus);
@@ -167,7 +168,7 @@ public class ProjectService {
                 .orElseThrow(() -> new ResourceNotFoundException("Project", "id", projectId));
 
         if (!project.getStudentProfile().getId().equals(profile.getId())) {
-            throw new RuntimeException("Access denied: this project does not belong to you.");
+            throw new AccessDeniedException("Access denied: this project does not belong to you.");
         }
 
         projectRepository.delete(project);

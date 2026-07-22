@@ -2,8 +2,10 @@ package com.studentguide.platform.controller;
 
 import java.util.List;
 
-// import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import com.studentguide.platform.dto.UserResponse;
@@ -23,56 +26,72 @@ import com.studentguide.platform.service.UserService;
 public class UserController {
 
     private final UserService userService;
-    // GET http://localhost:8080/api/users
+
     /**
      * GET /api/users
      * Returns the list of all registered users.
-     * Requires a valid JWT token (handled by JwtAuthFilter).
+     * Restricted to ADMIN only — students must not see other users' data.
      */
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserResponse>> getAllUsers() {
-        List<UserResponse> users = userService.getAllUsers();
-        return ResponseEntity.ok(users); // 200 OK
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
     /**
      * GET /api/users/{id}
-     * @PathVariable binds the {id} from the URL to the method parameter.
-     * If user is not found, UserService throws ResourceNotFoundException
-     * which GlobalExceptionHandler converts to 404.
+     * A user can fetch their own profile; ADMIN can fetch any profile.
      */
-    // GET http://localhost:8080/api/users/3
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
-        UserResponse user = userService.getUserById(id);
-        return ResponseEntity.ok(user); // 200 OK
+    public ResponseEntity<UserResponse> getUserById(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin) {
+            Long callerId = userService.getUserIdByEmail(authentication.getName());
+            if (!callerId.equals(id)) {
+                throw new AccessDeniedException("You can only view your own profile.");
+            }
+        }
+
+        return ResponseEntity.ok(userService.getUserById(id));
     }
 
     /**
      * PUT /api/users/{id}
-     * @Valid triggers Bean Validation on UserUpdateRequest.
-     * Validation failures are caught by GlobalExceptionHandler → 400 BAD REQUEST.
+     * A user can only update their own record. ADMIN can update any record.
      */
-    // PUT http://localhost:8080/api/users/3
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> updateUser(
             @PathVariable Long id,
+            Authentication authentication,
             @Valid @RequestBody UserUpdateRequest request) {
-        UserResponse updatedUser = userService.updateUser(id, request);
-        return ResponseEntity.ok(updatedUser); // 200 OK
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin) {
+            Long callerId = userService.getUserIdByEmail(authentication.getName());
+            if (!callerId.equals(id)) {
+                throw new AccessDeniedException("You can only update your own profile.");
+            }
+        }
+
+        return ResponseEntity.ok(userService.updateUser(id, request));
     }
 
     /**
      * DELETE /api/users/{id}
-     * Returns 204 NO CONTENT on success — standard REST convention.
-     * 204 means "request succeeded, but there's no response body."
+     * Hard-delete — restricted to ADMIN only.
+     * Returns 204 NO CONTENT on success.
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
-        return ResponseEntity.noContent().build(); // 204 NO CONTENT
+        return ResponseEntity.noContent().build();
     }
 }
-
-
- 
