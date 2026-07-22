@@ -54,8 +54,7 @@ public class ProjectService {
                 project.getStatus(),
                 project.getStudentProfile().getId(),
                 project.getCreatedAt(),
-                project.getUpdatedAt()
-        );
+                project.getUpdatedAt());
     }
 
     /**

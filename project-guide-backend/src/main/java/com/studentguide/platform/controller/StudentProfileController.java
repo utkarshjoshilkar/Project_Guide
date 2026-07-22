@@ -70,6 +70,4 @@ public class StudentProfileController {
         return ResponseEntity.noContent().build();
     }
 
-    
-
 }
