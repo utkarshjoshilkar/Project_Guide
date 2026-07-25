@@ -4,6 +4,7 @@ D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentg
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\controller\ProjectController.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\controller\RoadmapController.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\controller\StudentProfileController.java
+D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\controller\TaskController.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\controller\UserController.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\dto\AuthResponse.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\dto\DashboardResponse.java
@@ -11,10 +12,13 @@ D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentg
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\dto\MilestoneResponse.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\dto\ProjectRequest.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\dto\ProjectResponse.java
+D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\dto\ProjectSummaryResponse.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\dto\RegisterRequest.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\dto\RoadmapResponse.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\dto\StudentProfileRequest.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\dto\StudentProfileResponse.java
+D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\dto\TaskRequest.java
+D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\dto\TaskResponse.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\dto\UserResponse.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\dto\UserUpdateRequest.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\entity\Milestone.java
@@ -25,6 +29,8 @@ D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentg
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\entity\Roadmap.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\entity\RoadmapStatus.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\entity\StudentProfile.java
+D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\entity\Task.java
+D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\entity\TaskStatus.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\entity\User.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\exception\ApiErrorResponse.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\exception\GlobalExceptionHandler.java
@@ -37,6 +43,7 @@ D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentg
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\repository\ResourceRepository.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\repository\RoadmapRepository.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\repository\StudentProfileRepository.java
+D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\repository\TaskRepository.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\repository\UserRepository.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\security\JwtAuthFilter.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\security\JwtService.java
@@ -45,8 +52,10 @@ D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentg
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\AuthService.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\DashboardService.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\MilestoneService.java
+D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\ProgressService.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\ProjectService.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\RoadmapService.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\StudentProfileService.java
+D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\TaskService.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\UserService.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\StudentGuidePlatformApplication.java

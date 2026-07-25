@@ -1,5 +1,7 @@
 package com.studentguide.platform.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,25 +14,28 @@ import com.studentguide.platform.dto.LoginRequest;
 import com.studentguide.platform.dto.RegisterRequest;
 import com.studentguide.platform.service.AuthService;
 
-
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
-    
+
     private final AuthService authService;
 
+    /**
+     * POST /api/auth/register
+     * Returns 201 CREATED on successful registration.
+     */
     @PostMapping("/register")
-    public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
-        return authService.register(request);
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
     }
 
-    
+    /**
+     * POST /api/auth/login
+     * Returns 200 OK with a JWT token on successful authentication.
+     */
     @PostMapping("/login")
-    public AuthResponse login(@Valid @RequestBody LoginRequest request) {
-        return authService.login(request);
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
     }
 }
-
-
-

@@ -48,4 +48,10 @@ public class DashboardResponse {
      * "Recent Activity" section.
      */
     private List<ProjectResponse> recentProjects;
+
+    /**
+     * Per-project breakdown including roadmap progress, milestone counts,
+     * and task counts. One entry per project the student has submitted.
+     */
+    private List<ProjectSummaryResponse> projectSummaries;
 }

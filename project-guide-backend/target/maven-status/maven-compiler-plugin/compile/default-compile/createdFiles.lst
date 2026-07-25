@@ -2,6 +2,7 @@ com\studentguide\platform\entity\StudentProfile.class
 com\studentguide\platform\exception\StudentProfileAlreadyExistsException.class
 com\studentguide\platform\security\SecurityConfig.class
 com\studentguide\platform\dto\StudentProfileRequest.class
+com\studentguide\platform\entity\Task.class
 com\studentguide\platform\service\AuthService.class
 com\studentguide\platform\dto\ProjectResponse.class
 com\studentguide\platform\exception\ApiErrorResponse.class
@@ -17,6 +18,8 @@ com\studentguide\platform\repository\ProjectRepository.class
 com\studentguide\platform\exception\UserAlreadyExistsException.class
 com\studentguide\platform\security\UserDetailsServiceImpl.class
 com\studentguide\platform\security\JwtService.class
+com\studentguide\platform\entity\Task$TaskBuilder.class
+com\studentguide\platform\service\ProgressService.class
 com\studentguide\platform\repository\RoadmapRepository.class
 com\studentguide\platform\dto\MilestoneResponse.class
 com\studentguide\platform\entity\Resource$ResourceBuilder.class
@@ -26,13 +29,16 @@ com\studentguide\platform\entity\ProjectStatus.class
 com\studentguide\platform\dto\LoginRequest.class
 com\studentguide\platform\service\UserService.class
 com\studentguide\platform\repository\StudentProfileRepository.class
+com\studentguide\platform\repository\TaskRepository.class
 com\studentguide\platform\entity\RoadmapStatus.class
 com\studentguide\platform\exception\GlobalExceptionHandler.class
 com\studentguide\platform\repository\ResourceRepository.class
 com\studentguide\platform\exception\InvalidCredentialsException.class
 com\studentguide\platform\dto\StudentProfileResponse.class
 com\studentguide\platform\repository\UserRepository.class
+com\studentguide\platform\service\TaskService.class
 com\studentguide\platform\controller\ProjectController.class
+com\studentguide\platform\controller\TaskController.class
 com\studentguide\platform\entity\User.class
 com\studentguide\platform\dto\RegisterRequest.class
 com\studentguide\platform\dto\AuthResponse.class
@@ -50,9 +56,13 @@ com\studentguide\platform\service\MilestoneService.class
 com\studentguide\platform\service\RoadmapService.class
 com\studentguide\platform\dto\DashboardResponse.class
 com\studentguide\platform\exception\ResourceNotFoundException.class
+com\studentguide\platform\dto\TaskResponse.class
 com\studentguide\platform\StudentGuidePlatformApplication.class
 com\studentguide\platform\entity\Project$ProjectBuilder.class
+com\studentguide\platform\dto\TaskRequest.class
 com\studentguide\platform\entity\Resource.class
 com\studentguide\platform\security\JwtAuthFilter.class
 com\studentguide\platform\controller\StudentProfileController.class
 com\studentguide\platform\service\DashboardService.class
+com\studentguide\platform\dto\ProjectSummaryResponse.class
+com\studentguide\platform\entity\TaskStatus.class

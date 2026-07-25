@@ -11,17 +11,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.studentguide.platform.dto.DashboardResponse;
 import com.studentguide.platform.dto.ProjectResponse;
+import com.studentguide.platform.dto.ProjectSummaryResponse;
 import com.studentguide.platform.dto.StudentProfileResponse;
 import com.studentguide.platform.entity.MilestoneStatus;
 import com.studentguide.platform.entity.Project;
 import com.studentguide.platform.entity.Roadmap;
 import com.studentguide.platform.entity.StudentProfile;
+import com.studentguide.platform.entity.TaskStatus;
 import com.studentguide.platform.entity.User;
 import com.studentguide.platform.exception.ResourceNotFoundException;
 import com.studentguide.platform.repository.MilestoneRepository;
 import com.studentguide.platform.repository.ProjectRepository;
 import com.studentguide.platform.repository.RoadmapRepository;
 import com.studentguide.platform.repository.StudentProfileRepository;
+import com.studentguide.platform.repository.TaskRepository;
 import com.studentguide.platform.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -36,6 +39,8 @@ public class DashboardService {
     private final ProjectRepository projectRepository;
     private final RoadmapRepository roadmapRepository;
     private final MilestoneRepository milestoneRepository;
+    private final TaskRepository taskRepository;
+    private final ProgressService progressService;
 
     /**
      * GET /api/dashboard
@@ -45,6 +50,7 @@ public class DashboardService {
      * - Total project count and breakdown by status
      * - Overall progress % (average across projects that have a roadmap)
      * - Last 3 projects updated, for the "Recent Activity" section
+     * - Per-project summary with task/milestone counts and roadmap progress
      */
     public DashboardResponse getDashboard(String email) {
 
@@ -76,7 +82,7 @@ public class DashboardService {
                 .map(project -> roadmapRepository.findByProject(project))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .map(this::calculateProgress)
+                .map(roadmap -> progressService.calculateRoadmapProgress(roadmap.getId()))
                 .collect(Collectors.toList());
 
         double overallProgress = progressValues.isEmpty()
@@ -94,6 +100,11 @@ public class DashboardService {
                 .map(this::toProjectResponse)
                 .collect(Collectors.toList());
 
+        // ── 7. Per-project summaries ─────────────────────────────────────────
+        List<ProjectSummaryResponse> projectSummaries = projects.stream()
+                .map(this::toProjectSummary)
+                .collect(Collectors.toList());
+
         return new DashboardResponse(
                 user.getId(),
                 user.getFullName(),
@@ -102,7 +113,8 @@ public class DashboardService {
                 totalProjects,
                 projectsByStatus,
                 overallProgress,
-                recentProjects);
+                recentProjects,
+                projectSummaries);
     }
 
     // ────────────────────────────────────────────────────────────────────────
@@ -110,19 +122,51 @@ public class DashboardService {
     // ────────────────────────────────────────────────────────────────────────
 
     /**
-     * Calculates the completion percentage of a roadmap based on its milestones.
-     * Returns 0.0 if the roadmap has no milestones.
+     * Builds a ProjectSummaryResponse for one project.
+     * If the project has no roadmap yet, all numeric fields are 0.
      */
-    private double calculateProgress(Roadmap roadmap) {
-        long total = milestoneRepository.countByRoadmapId(roadmap.getId());
-        if (total == 0) return 0.0;
-        long completed = milestoneRepository.countByRoadmapIdAndStatus(
-                roadmap.getId(), MilestoneStatus.COMPLETED);
-        return completed * 100.0 / total;
+    private ProjectSummaryResponse toProjectSummary(Project project) {
+
+        Optional<Roadmap> roadmapOpt = roadmapRepository.findByProject(project);
+
+        if (roadmapOpt.isEmpty()) {
+            return new ProjectSummaryResponse(
+                    project.getId(),
+                    project.getTitle(),
+                    project.getStatus(),
+                    0.0,   // roadmapProgress
+                    0,     // totalMilestones
+                    0,     // completedMilestones
+                    0L,    // totalTasks
+                    0L,    // completedTasks
+                    0L);   // pendingTasks
+        }
+
+        Roadmap roadmap = roadmapOpt.get();
+        Long roadmapId = roadmap.getId();
+
+        double roadmapProgress = progressService.calculateRoadmapProgress(roadmapId);
+
+        int totalMilestones = (int) milestoneRepository.countByRoadmapId(roadmapId);
+        int completedMilestones =
+                (int) milestoneRepository.countByRoadmapIdAndStatus(roadmapId, MilestoneStatus.COMPLETED);
+
+        long totalTasks = taskRepository.countByMilestoneRoadmapId(roadmapId);
+        long completedTasks = taskRepository.countByMilestoneRoadmapIdAndStatus(roadmapId, TaskStatus.DONE);
+        long pendingTasks = totalTasks - completedTasks;
+
+        return new ProjectSummaryResponse(
+                project.getId(),
+                project.getTitle(),
+                project.getStatus(),
+                roadmapProgress,
+                totalMilestones,
+                completedMilestones,
+                totalTasks,
+                completedTasks,
+                pendingTasks);
     }
 
-
-    
     private StudentProfileResponse mapProfile(StudentProfile profile) {
         return new StudentProfileResponse(
                 profile.getId(),

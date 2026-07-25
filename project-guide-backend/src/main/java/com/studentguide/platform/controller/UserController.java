@@ -3,7 +3,6 @@ package com.studentguide.platform.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -41,28 +40,20 @@ public class UserController {
     /**
      * GET /api/users/{id}
      * A user can fetch their own profile; ADMIN can fetch any profile.
+     * Authorization logic is enforced inside UserService.
      */
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(
             @PathVariable Long id,
             Authentication authentication) {
 
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-        if (!isAdmin) {
-            Long callerId = userService.getUserIdByEmail(authentication.getName());
-            if (!callerId.equals(id)) {
-                throw new AccessDeniedException("You can only view your own profile.");
-            }
-        }
-
-        return ResponseEntity.ok(userService.getUserById(id));
+        return ResponseEntity.ok(userService.getUserById(authentication, id));
     }
 
     /**
      * PUT /api/users/{id}
      * A user can only update their own record. ADMIN can update any record.
+     * Authorization logic is enforced inside UserService.
      */
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> updateUser(
@@ -70,17 +61,7 @@ public class UserController {
             Authentication authentication,
             @Valid @RequestBody UserUpdateRequest request) {
 
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-        if (!isAdmin) {
-            Long callerId = userService.getUserIdByEmail(authentication.getName());
-            if (!callerId.equals(id)) {
-                throw new AccessDeniedException("You can only update your own profile.");
-            }
-        }
-
-        return ResponseEntity.ok(userService.updateUser(id, request));
+        return ResponseEntity.ok(userService.updateUser(authentication, id, request));
     }
 
     /**

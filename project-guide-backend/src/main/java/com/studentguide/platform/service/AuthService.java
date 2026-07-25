@@ -1,7 +1,5 @@
 package com.studentguide.platform.service;
 
-import java.time.LocalDateTime;
-
 import com.studentguide.platform.exception.InvalidCredentialsException;
 import com.studentguide.platform.exception.UserAlreadyExistsException;
 
@@ -19,13 +17,16 @@ import com.studentguide.platform.security.JwtService;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-    
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-
-    public AuthResponse register(RegisterRequest request){
+    /**
+     * Registers a new student user.
+     * createdAt is set automatically by @CreationTimestamp on the User entity.
+     */
+    public AuthResponse register(RegisterRequest request) {
 
         if (userRepository.existsByEmail(request.getEmail())) {
             // Throw a proper exception — caught by GlobalExceptionHandler → 409 CONFLICT
@@ -37,7 +38,7 @@ public class AuthService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role("STUDENT")
-                .createdAt(LocalDateTime.now())
+                // createdAt is managed automatically by @CreationTimestamp on the entity
                 .build();
 
         userRepository.save(user);
@@ -45,21 +46,20 @@ public class AuthService {
         return new AuthResponse("User registered successfully", null);
     }
 
-    public AuthResponse login(LoginRequest request){
+    /**
+     * Authenticates an existing user and returns a JWT token.
+     */
+    public AuthResponse login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.getEmail())
-                        .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
-        
-        boolean passwordMatches = passwordEncoder.matches(request.getPassword(),user.getPassword());
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
-        if(!passwordMatches){
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new InvalidCredentialsException("Invalid email or password");
         }
 
         String token = jwtService.generateToken(user);
-        
+
         return new AuthResponse("Login Successful", token);
     }
-        
-
 }

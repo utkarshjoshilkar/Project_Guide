@@ -9,7 +9,6 @@ import com.studentguide.platform.repository.StudentProfileRepository;
 import com.studentguide.platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -18,18 +17,29 @@ public class StudentProfileService {
     private final StudentProfileRepository studentProfileRepository;
     private final UserRepository userRepository;
 
-    public StudentProfileResponse createProfile(Long userId, StudentProfileRequest request) {
+    // ─────────────────────────────────────────────
+    // Helper: resolve email → userId
+    // Keeps repository access out of the controller layer.
+    // ─────────────────────────────────────────────
+    private Long resolveUserId(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email))
+                .getId();
+    }
 
-        // Validate the user exists before creating a profile
-        userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+    /**
+     * Creates a student profile for the authenticated user.
+     * Throws if the user does not exist or a profile already exists.
+     */
+    public StudentProfileResponse createProfile(String email, StudentProfileRequest request) {
+
+        Long userId = resolveUserId(email);
 
         if (studentProfileRepository.existsByUserId(userId)) {
             throw new StudentProfileAlreadyExistsException(userId);
         }
 
         StudentProfile profile = new StudentProfile();
-
         profile.setUserId(userId);
         profile.setCollege(request.getCollege());
         profile.setBranch(request.getBranch());
@@ -41,15 +51,17 @@ public class StudentProfileService {
         profile.setGithubProfile(request.getGithubProfile());
         profile.setLinkedinProfile(request.getLinkedinProfile());
         profile.setLearningGoal(request.getLearningGoal());
-        profile.setCreatedAt(LocalDateTime.now());
-        profile.setUpdatedAt(LocalDateTime.now());
+        // createdAt and updatedAt are set automatically by @CreationTimestamp / @UpdateTimestamp
 
-        StudentProfile savedProfile = studentProfileRepository.save(profile);
-
-        return mapToResponse(savedProfile);
+        return mapToResponse(studentProfileRepository.save(profile));
     }
 
-    public StudentProfileResponse getProfile(Long userId) {
+    /**
+     * Returns the profile for the authenticated user.
+     */
+    public StudentProfileResponse getProfile(String email) {
+
+        Long userId = resolveUserId(email);
 
         StudentProfile profile = studentProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("StudentProfile", "userId", userId));
@@ -57,7 +69,12 @@ public class StudentProfileService {
         return mapToResponse(profile);
     }
 
-    public StudentProfileResponse updateProfile(Long userId, StudentProfileRequest request) {
+    /**
+     * Updates all mutable fields on the authenticated user's profile.
+     */
+    public StudentProfileResponse updateProfile(String email, StudentProfileRequest request) {
+
+        Long userId = resolveUserId(email);
 
         StudentProfile profile = studentProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("StudentProfile", "userId", userId));
@@ -72,14 +89,17 @@ public class StudentProfileService {
         profile.setGithubProfile(request.getGithubProfile());
         profile.setLinkedinProfile(request.getLinkedinProfile());
         profile.setLearningGoal(request.getLearningGoal());
-        profile.setUpdatedAt(LocalDateTime.now());
+        // updatedAt refreshed automatically by @UpdateTimestamp
 
-        StudentProfile updatedProfile = studentProfileRepository.save(profile);
-
-        return mapToResponse(updatedProfile);
+        return mapToResponse(studentProfileRepository.save(profile));
     }
 
-    public void deleteProfile(Long userId) {
+    /**
+     * Deletes the authenticated user's profile.
+     */
+    public void deleteProfile(String email) {
+
+        Long userId = resolveUserId(email);
 
         StudentProfile profile = studentProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("StudentProfile", "userId", userId));
@@ -87,8 +107,10 @@ public class StudentProfileService {
         studentProfileRepository.delete(profile);
     }
 
+    // ─────────────────────────────────────────────
+    // Helper: StudentProfile entity → DTO
+    // ─────────────────────────────────────────────
     private StudentProfileResponse mapToResponse(StudentProfile profile) {
-
         return new StudentProfileResponse(
                 profile.getId(),
                 profile.getCollege(),

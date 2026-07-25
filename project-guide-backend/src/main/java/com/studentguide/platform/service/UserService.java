@@ -2,6 +2,8 @@ package com.studentguide.platform.service;
 
 import java.util.List;
 
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,23 @@ public class UserService {
         );
     }
 
+    // ─────────────────────────────────────────────
+    // Helper: enforce ownership or ADMIN access.
+    // Throws AccessDeniedException if the caller is not an ADMIN
+    // and is trying to access a different user's resource.
+    // ─────────────────────────────────────────────
+    private void assertCallerCanAccess(Authentication authentication, Long targetId) {
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin) {
+            Long callerId = getUserIdByEmail(authentication.getName());
+            if (!callerId.equals(targetId)) {
+                throw new AccessDeniedException("You can only access your own profile.");
+            }
+        }
+    }
+
     /**
      * GET /api/users
      * Returns all users as a list of UserResponse DTOs.
@@ -45,7 +64,7 @@ public class UserService {
 
     /**
      * Resolves the authenticated user's numeric ID from their email.
-     * Used by controllers to perform ownership checks without exposing
+     * Used internally for ownership checks without exposing
      * repository access outside the service layer.
      */
     public Long getUserIdByEmail(String email) {
@@ -53,31 +72,36 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", email))
                 .getId();
     }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+
     /**
      * GET /api/users/{id}
-     * Finds a user by ID, throws ResourceNotFoundException if not found.
-     * orElseThrow() is how you safely unwrap an Optional in Spring.
+     * A user can fetch their own profile; ADMIN can fetch any profile.
+     * Authorization logic lives here — not in the controller.
      */
-    public UserResponse getUserById(Long id) {
+    public UserResponse getUserById(Authentication authentication, Long id) {
+        assertCallerCanAccess(authentication, id);
+
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+
         return toResponse(user);
     }
 
     /**
      * PUT /api/users/{id}
      * Updates allowed fields and saves the entity back to the database.
-     * Only fullName is updatable (email changes require verification).
+     * A user can only update their own record; ADMIN can update any record.
+     * Authorization logic lives here — not in the controller.
      */
-    public UserResponse updateUser(Long id, UserUpdateRequest request) {
+    public UserResponse updateUser(Authentication authentication, Long id, UserUpdateRequest request) {
+        assertCallerCanAccess(authentication, id);
+
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
 
         user.setFullName(request.getFullName());
 
-        User savedUser = userRepository.save(user);
-        return toResponse(savedUser);
+        return toResponse(userRepository.save(user));
     }
 
     /**

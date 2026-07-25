@@ -13,9 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.studentguide.platform.dto.StudentProfileRequest;
 import com.studentguide.platform.dto.StudentProfileResponse;
-import com.studentguide.platform.entity.User;
-import com.studentguide.platform.exception.ResourceNotFoundException;
-import com.studentguide.platform.repository.UserRepository;
 import com.studentguide.platform.service.StudentProfileService;
 
 import jakarta.validation.Valid;
@@ -27,48 +24,43 @@ import lombok.RequiredArgsConstructor;
 public class StudentProfileController {
 
     private final StudentProfileService studentProfileService;
-    private final UserRepository userRepository;
 
     @PostMapping
-    public ResponseEntity<StudentProfileResponse> createStudentProfile(Authentication authentication,
+    public ResponseEntity<StudentProfileResponse> createStudentProfile(
+            Authentication authentication,
             @Valid @RequestBody StudentProfileRequest request) {
-        User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", authentication.getName()));
 
-        StudentProfileResponse response = studentProfileService.createProfile(user.getId(), request);
+        StudentProfileResponse response =
+                studentProfileService.createProfile(authentication.getName(), request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/me")
     public ResponseEntity<StudentProfileResponse> getStudentProfile(Authentication authentication) {
-        User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", authentication.getName()));
 
-        StudentProfileResponse response = studentProfileService.getProfile(user.getId());
+        StudentProfileResponse response =
+                studentProfileService.getProfile(authentication.getName());
 
         return ResponseEntity.ok(response);
     }
 
     @PutMapping
-    public ResponseEntity<StudentProfileResponse> updateStudentProfile(Authentication authentication,
+    public ResponseEntity<StudentProfileResponse> updateStudentProfile(
+            Authentication authentication,
             @Valid @RequestBody StudentProfileRequest request) {
-        User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", authentication.getName()));
 
-        StudentProfileResponse response = studentProfileService.updateProfile(user.getId(), request);
+        StudentProfileResponse response =
+                studentProfileService.updateProfile(authentication.getName(), request);
 
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping
     public ResponseEntity<Void> deleteProfile(Authentication authentication) {
-        User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", authentication.getName()));
 
-        studentProfileService.deleteProfile(user.getId());
+        studentProfileService.deleteProfile(authentication.getName());
 
         return ResponseEntity.noContent().build();
     }
-
 }

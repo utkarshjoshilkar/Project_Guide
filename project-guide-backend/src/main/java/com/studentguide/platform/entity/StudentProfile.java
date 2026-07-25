@@ -2,6 +2,10 @@ package com.studentguide.platform.entity;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -36,7 +40,11 @@ public class StudentProfile {
     private String githubProfile;
     private String linkedinProfile;
     private String learningGoal;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 
+    @CreationTimestamp
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
 }
