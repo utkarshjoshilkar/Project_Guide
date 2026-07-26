@@ -1,19 +1,24 @@
 /**
  * Purpose: Register Page.
- * Responsibilities: Render registration form and create new user.
- * Dependencies: react
- * Future extensibility: Implement form validation and API integration.
+ * Responsibilities: Assemble the Register UI using reusable Auth components.
+ * Dependencies: react, AuthCard, AuthHeader, RegisterForm
+ * Future extensibility: Add social login buttons or terms of service checkboxes.
  */
 
 import React from 'react';
+import { AuthCard } from '@/features/auth/components/AuthCard';
+import { AuthHeader } from '@/features/auth/components/AuthHeader';
+import { RegisterForm } from '@/features/auth/components/RegisterForm';
 
 const Register = () => {
   return (
-    <div className="glass-card p-8 w-full max-w-md">
-      <h1 className="text-2xl font-bold mb-4">Create an Account</h1>
-      <p className="text-text-muted mb-6">Join Project Guide to track your learning journey.</p>
-      {/* Form will go here */}
-    </div>
+    <AuthCard>
+      <AuthHeader 
+        title="Create an Account" 
+        subtitle="Join Project Guide to track your learning journey." 
+      />
+      <RegisterForm />
+    </AuthCard>
   );
 };
 

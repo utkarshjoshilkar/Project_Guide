@@ -18,7 +18,11 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 // Pages
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
+import ForgotPassword from '@/pages/ForgotPassword';
 import Dashboard from '@/pages/Dashboard';
+import ViewProfile from '@/pages/ViewProfile';
+import CreateProfile from '@/pages/CreateProfile';
+import EditProfile from '@/pages/EditProfile';
 
 function App() {
   return (
@@ -33,15 +37,18 @@ function App() {
             <Route element={<GuestLayout />}>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
             </Route>
 
             {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
               <Route element={<MainLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/profile" element={<ViewProfile />} />
+                <Route path="/profile/create" element={<CreateProfile />} />
+                <Route path="/profile/edit" element={<EditProfile />} />
                 {/* 
                   Placeholders for future implementation:
-                  <Route path="/profile" element={<Profile />} />
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/roadmap" element={<Roadmap />} />
                   <Route path="/resources" element={<Resources />} />
