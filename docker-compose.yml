@@ -1,0 +1,107 @@
+# =============================================================================
+# docker-compose.yml — Project Guide Platform
+# =============================================================================
+# Services:
+#   mysql        — MySQL 8.0 database
+#   backend      — Spring Boot API (project-guide-backend)
+#   ai-service   — FastAPI AI Roadmap service (ai-roadmap-service)
+#
+# Usage:
+#   1. cp project-guide-backend/.env.example project-guide-backend/.env
+#   2. cp ai-roadmap-service/.env.example ai-roadmap-service/.env
+#   3. Fill in your secrets in both .env files
+#   4. docker-compose up --build
+# =============================================================================
+
+services:
+
+  # ── MySQL 8.0 ─────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: project-guide-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-project_guide_db}
+      MYSQL_USER: ${MYSQL_USER:-pguser}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-pgpassword}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - project-guide-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ── Spring Boot Backend ────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./project-guide-backend
+      dockerfile: Dockerfile
+    container_name: project-guide-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # Database — uses the mysql service name as host
+      DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-project_guide_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: ${MYSQL_USER:-pguser}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-pgpassword}
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+      # AI Service — uses docker-compose service name
+      AI_SERVICE_URL: http://ai-service:8000
+      AI_CONNECT_TIMEOUT_MS: ${AI_CONNECT_TIMEOUT_MS:-5000}
+      AI_READ_TIMEOUT_MS: ${AI_READ_TIMEOUT_MS:-60000}
+      # CORS — set to your frontend domain in production
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5500}
+    ports:
+      - "8080:8080"
+    networks:
+      - project-guide-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/auth/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ── FastAPI AI Service ─────────────────────────────────────────────────────
+  ai-service:
+    build:
+      context: ./ai-roadmap-service
+      dockerfile: Dockerfile
+    container_name: project-guide-ai-service
+    restart: unless-stopped
+    env_file:
+      - ./ai-roadmap-service/.env
+    environment:
+      PORT: 8000
+    ports:
+      - "8000:8000"
+    networks:
+      - project-guide-network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+# ── Networks ─────────────────────────────────────────────────────────────────
+networks:
+  project-guide-network:
+    driver: bridge
+
+# ── Volumes ──────────────────────────────────────────────────────────────────
+volumes:
+  mysql_data:
+    driver: local

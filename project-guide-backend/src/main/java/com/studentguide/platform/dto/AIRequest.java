@@ -2,6 +2,7 @@ package com.studentguide.platform.dto;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
@@ -16,6 +17,12 @@ import lombok.Setter;
  *
  * Built by AIIntegrationService from the Project entity and
  * the student's profile data.
+ *
+ * Bug fix (Phase 1): projectId was marked `transient` which prevents Java
+ * serialization but does NOT stop Jackson JSON serialization. FastAPI's
+ * RoadmapRequest Pydantic model has no `project_id` field, so sending it
+ * causes a validation error. @JsonIgnore correctly excludes it from the
+ * JSON body sent to FastAPI.
  */
 @Getter
 @Setter
@@ -25,10 +32,11 @@ import lombok.Setter;
 public class AIRequest {
 
     /**
-     * Internal project ID — not sent to FastAPI but carried for
-     * traceability in logs. Excluded from serialization.
+     * Internal project ID — not sent to FastAPI.
+     * Used for logging/traceability in AIIntegrationService only.
      */
-    private transient Long projectId;
+    @JsonIgnore
+    private Long projectId;
 
     @JsonProperty("project_name")
     private String projectName;
