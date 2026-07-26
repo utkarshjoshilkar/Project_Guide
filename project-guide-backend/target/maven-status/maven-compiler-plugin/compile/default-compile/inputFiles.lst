@@ -71,7 +71,6 @@ D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentg
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\security\SecurityConfig.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\security\UserDetailsServiceImpl.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\ai\AIIntegrationService.java
-D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\ai\PromptAuditService.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\ai\RoadmapPersistenceService.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\AuthService.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\DashboardService.java

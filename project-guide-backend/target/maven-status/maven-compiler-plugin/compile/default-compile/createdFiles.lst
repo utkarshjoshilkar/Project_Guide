@@ -73,7 +73,6 @@ com\studentguide\platform\exception\GlobalExceptionHandler.class
 com\studentguide\platform\exception\InvalidCredentialsException.class
 com\studentguide\platform\service\OwnershipValidator.class
 com\studentguide\platform\controller\TaskController.class
-com\studentguide\platform\service\ai\PromptAuditService.class
 com\studentguide\platform\entity\User.class
 com\studentguide\platform\dto\RegisterRequest.class
 com\studentguide\platform\dto\AuthResponse.class

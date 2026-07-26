@@ -23,7 +23,15 @@ class ResponseParser:
             raise AIException("AI returned an empty response.")
 
         try:
-            data = json.loads(response)
+            cleaned_response = response.strip()
+            if cleaned_response.startswith("```json"):
+                cleaned_response = cleaned_response[7:]
+            if cleaned_response.startswith("```"):
+                cleaned_response = cleaned_response[3:]
+            if cleaned_response.endswith("```"):
+                cleaned_response = cleaned_response[:-3]
+            cleaned_response = cleaned_response.strip()
+            data = json.loads(cleaned_response)
 
             return RoadmapResponse(
                 project_summary=self._create_project_summary(data),
@@ -59,13 +67,17 @@ class ResponseParser:
 
     def _create_prerequisites(self, data: dict) -> list[Prerequisite]:
         prerequisites = []
-
-        for prerequisite in data["prerequisites"]:
-
+        for pr in data.get("prerequisites", []):
+            concepts_raw = pr.get("concepts", [])
+            if isinstance(concepts_raw, str):
+                concepts_list = [c.strip() for c in concepts_raw.split(",") if c.strip()]
+            else:
+                concepts_list = concepts_raw
+                
             prerequisites.append(
                 Prerequisite(
-                    topic=prerequisite["topic"],
-                    concepts=prerequisite["concepts"]
+                    topic=pr.get("topic", ""),
+                    concepts=concepts_list
                 )
             )
         return prerequisites
@@ -76,18 +88,24 @@ class ResponseParser:
         phases = []
 
         for phase in data["phaseWiseLearningPlan"]:
-
-            phases.append(
-                RoadmapPhase(
-                    phase=phase["phase"],
-                    timeline=phase["timeline"],
-                    weekly_allocation=phase["weeklyAllocation"],
-                    objectives=phase["objectives"],
-                    topics_to_cover=phase["topicsToCover"],
-                    action_items=phase["actionItems"]
-                )
-            )
+            phases.append(self._create_phase(phase))
         return phases
+
+    def _create_phase(self, data: dict) -> RoadmapPhase:
+        def get_list(key):
+            val = data.get(key, [])
+            if isinstance(val, str):
+                return [x.strip() for x in val.split(",") if x.strip()]
+            return val
+            
+        return RoadmapPhase(
+            phase=data.get("phase", ""),
+            timeline=data.get("timeline", ""),
+            weekly_allocation=data.get("weeklyAllocation", ""),
+            objectives=get_list("objectives"),
+            topics_to_cover=get_list("topicsToCover"),
+            action_items=get_list("actionItems")
+        )
 
 
 

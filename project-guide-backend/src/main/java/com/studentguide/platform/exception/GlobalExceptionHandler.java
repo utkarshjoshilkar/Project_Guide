@@ -144,10 +144,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleGenericException(Exception ex) {
         log.error("Unexpected error [{}]: {}", ex.getClass().getSimpleName(), ex.getMessage(), ex);
+        String errorMsg = ex.getMessage();
+        if (ex.getCause() != null) {
+            errorMsg += " | Cause: " + ex.getCause().getMessage();
+        }
         ApiErrorResponse error = new ApiErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Internal Server Error",
-                "An unexpected error occurred. Please try again later.",
+                "Error: " + errorMsg,
                 LocalDateTime.now());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
