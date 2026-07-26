@@ -23,6 +23,10 @@ import Dashboard from '@/pages/Dashboard';
 import ViewProfile from '@/pages/ViewProfile';
 import CreateProfile from '@/pages/CreateProfile';
 import EditProfile from '@/pages/EditProfile';
+import ProjectList from '@/pages/ProjectList';
+import CreateProject from '@/pages/CreateProject';
+import EditProject from '@/pages/EditProject';
+import ProjectDetails from '@/pages/ProjectDetails';
 
 function App() {
   return (
@@ -47,9 +51,15 @@ function App() {
                 <Route path="/profile" element={<ViewProfile />} />
                 <Route path="/profile/create" element={<CreateProfile />} />
                 <Route path="/profile/edit" element={<EditProfile />} />
+                
+                {/* Project Routes */}
+                <Route path="/projects" element={<ProjectList />} />
+                <Route path="/projects/new" element={<CreateProject />} />
+                <Route path="/projects/:id" element={<ProjectDetails />} />
+                <Route path="/projects/:id/edit" element={<EditProject />} />
+
                 {/* 
                   Placeholders for future implementation:
-                  <Route path="/projects" element={<Projects />} />
                   <Route path="/roadmap" element={<Roadmap />} />
                   <Route path="/resources" element={<Resources />} />
                   <Route path="/settings" element={<Settings />} />
