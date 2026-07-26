@@ -31,4 +31,24 @@
   .glass-card {
     @apply bg-surface/80 backdrop-blur-lg border border-white/5 rounded-2xl shadow-2xl;
   }
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+
+  .animate-indeterminate {
+    animation: indeterminate 2s infinite linear;
+    transform-origin: 0% 50%;
+  }
+}
+
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%) scaleX(0.2);
+  }
+  50% {
+    transform: translateX(0) scaleX(0.5);
+  }
+  100% {
+    transform: translateX(100%) scaleX(0.2);
+  }
 }

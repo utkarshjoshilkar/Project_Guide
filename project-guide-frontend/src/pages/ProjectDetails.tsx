@@ -13,6 +13,7 @@ import { ProjectHeader } from '@/features/projects/components/ProjectHeader';
 import { ProjectStatusBadge } from '@/features/projects/components/ProjectStatusBadge';
 import { DifficultyBadge } from '@/features/projects/components/DifficultyBadge';
 import { DeleteProjectModal } from '@/features/projects/components/DeleteProjectModal';
+import { RoadmapStatusCard } from '@/features/projects/components/RoadmapStatusCard';
 import { ArrowLeft, Edit2, Trash2, Calendar, Layers, CheckSquare, Clock } from 'lucide-react';
 
 const ProjectDetails = () => {
@@ -124,12 +125,8 @@ const ProjectDetails = () => {
             </p>
           </div>
 
-          {/* Placeholder for AI Roadmap module */}
-          <div className="glass-card p-6 md:p-8 border-dashed border-primary/30 bg-primary/5 relative overflow-hidden flex flex-col items-center justify-center text-center min-h-[250px]">
-             <h2 className="text-xl font-bold text-text-main mb-2">Roadmap Generation</h2>
-             <p className="text-text-muted mb-6 max-w-md">The AI generation feature will be implemented in the next phase. Soon, you'll be able to instantly generate tasks and milestones for this project.</p>
-             <button disabled className="px-6 py-2 bg-primary/50 text-white font-medium rounded-lg opacity-50 cursor-not-allowed">Generate Roadmap</button>
-          </div>
+          {/* AI Roadmap Module */}
+          <RoadmapStatusCard projectId={project.id} />
         </div>
 
         {/* Sidebar Metadata */}
