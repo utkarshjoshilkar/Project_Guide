@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import com.studentguide.platform.exception.AIServiceException;
+import com.studentguide.platform.exception.RoadmapAlreadyExistsException;
+
 /**
  * Centralized exception handler for the entire application.
  *
@@ -22,6 +25,35 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /**
+     * Handles: POST /api/projects/{id}/generate-roadmap when FastAPI is unreachable
+     * or returns an invalid response.
+     * Returns: 502 BAD GATEWAY
+     */
+    @ExceptionHandler(AIServiceException.class)
+    public ResponseEntity<ApiErrorResponse> handleAIServiceException(AIServiceException ex) {
+        ApiErrorResponse error = new ApiErrorResponse(
+                HttpStatus.BAD_GATEWAY.value(),
+                "Bad Gateway",
+                ex.getMessage(),
+                LocalDateTime.now());
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(error);
+    }
+
+    /**
+     * Handles: POST /api/projects/{id}/generate-roadmap when roadmap already exists.
+     * Returns: 409 CONFLICT
+     */
+    @ExceptionHandler(RoadmapAlreadyExistsException.class)
+    public ResponseEntity<ApiErrorResponse> handleRoadmapAlreadyExists(RoadmapAlreadyExistsException ex) {
+        ApiErrorResponse error = new ApiErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                "Conflict",
+                ex.getMessage(),
+                LocalDateTime.now());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
 
     /**
      * Handles: GET /users/999 when user with id=999 does not exist.

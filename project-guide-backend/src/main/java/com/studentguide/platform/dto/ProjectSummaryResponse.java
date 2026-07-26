@@ -1,5 +1,7 @@
 package com.studentguide.platform.dto;
 
+import java.time.LocalDate;
+
 import com.studentguide.platform.entity.ProjectStatus;
 
 import lombok.AllArgsConstructor;
@@ -20,7 +22,9 @@ import lombok.Setter;
  *   "completedMilestones": 4,
  *   "totalTasks": 39,
  *   "completedTasks": 31,
- *   "pendingTasks": 8
+ *   "pendingTasks": 8,
+ *   "estimatedCompletionDate": "2025-09-15",
+ *   "totalLearningHoursEstimate": 84
  * }
  */
 @Getter
@@ -56,4 +60,20 @@ public class ProjectSummaryResponse {
 
     /** Number of tasks that are not yet DONE (TODO + IN_PROGRESS). */
     private long pendingTasks;
+
+    /**
+     * Estimated completion date.
+     * Uses the project's deadline if set; otherwise derived from
+     * roadmap generatedAt + estimatedDurationWeeks.
+     * Null if the project has no roadmap yet.
+     */
+    private LocalDate estimatedCompletionDate;
+
+    /**
+     * Estimated total learning hours for the entire roadmap.
+     * Calculated as: totalMilestones × estimatedDaysPerMilestone × 2 hours/day.
+     * Uses a default of 7 estimated days per milestone.
+     * 0 if no roadmap exists.
+     */
+    private int totalLearningHoursEstimate;
 }

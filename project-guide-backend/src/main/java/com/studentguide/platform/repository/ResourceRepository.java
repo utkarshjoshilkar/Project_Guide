@@ -3,14 +3,15 @@ package com.studentguide.platform.repository;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import com.studentguide.platform.entity.Resource;
+import com.studentguide.platform.entity.ResourceType;
 
-@Repository
-public interface ResourceRepository extends JpaRepository<Resource,Long> {
-    List<Resource> findByTitleContainingIgnoreCase(String title);
+public interface ResourceRepository extends JpaRepository<Resource, Long> {
 
-    List<Resource> findByCategory(String category);
+    /** All resources for a task, creation-ordered. */
+    List<Resource> findByTaskIdOrderByCreatedAtAsc(Long taskId);
 
+    /** Resources filtered by type within a task. */
+    List<Resource> findByTaskIdAndType(Long taskId, ResourceType type);
 }

@@ -1,5 +1,6 @@
 package com.studentguide.platform.service;
 
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -139,7 +140,9 @@ public class DashboardService {
                     0,     // completedMilestones
                     0L,    // totalTasks
                     0L,    // completedTasks
-                    0L);   // pendingTasks
+                    0L,    // pendingTasks
+                    null,  // estimatedCompletionDate
+                    0);    // totalLearningHoursEstimate
         }
 
         Roadmap roadmap = roadmapOpt.get();
@@ -155,6 +158,21 @@ public class DashboardService {
         long completedTasks = taskRepository.countByMilestoneRoadmapIdAndStatus(roadmapId, TaskStatus.DONE);
         long pendingTasks = totalTasks - completedTasks;
 
+        // ── Phase 4: Estimated completion date ───────────────────────────────
+        // Prefer the project's explicit deadline; fall back to roadmap generatedAt + duration.
+        LocalDate estimatedCompletionDate;
+        if (project.getDeadline() != null) {
+            estimatedCompletionDate = project.getDeadline();
+        } else {
+            estimatedCompletionDate = roadmap.getGeneratedAt()
+                    .toLocalDate()
+                    .plusWeeks(roadmap.getEstimatedDurationWeeks());
+        }
+
+        // ── Phase 4: Total learning hours estimate ────────────────────────────
+        // Formula: totalMilestones × 7 estimatedDays × 2 hours/day
+        int totalLearningHoursEstimate = totalMilestones * 7 * 2;
+
         return new ProjectSummaryResponse(
                 project.getId(),
                 project.getTitle(),
@@ -164,7 +182,9 @@ public class DashboardService {
                 completedMilestones,
                 totalTasks,
                 completedTasks,
-                pendingTasks);
+                pendingTasks,
+                estimatedCompletionDate,
+                totalLearningHoursEstimate);
     }
 
     private StudentProfileResponse mapProfile(StudentProfile profile) {
