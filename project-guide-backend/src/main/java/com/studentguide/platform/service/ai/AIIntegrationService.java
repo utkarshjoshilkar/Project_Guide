@@ -3,9 +3,7 @@ package com.studentguide.platform.service.ai;
 import java.util.Arrays;
 import java.util.List;
 
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
@@ -18,14 +16,13 @@ import com.studentguide.platform.dto.ai.AIRoadmapResponse;
 import com.studentguide.platform.entity.Project;
 import com.studentguide.platform.entity.Roadmap;
 import com.studentguide.platform.entity.StudentProfile;
-import com.studentguide.platform.entity.User;
 import com.studentguide.platform.exception.AIServiceException;
 import com.studentguide.platform.exception.ResourceNotFoundException;
 import com.studentguide.platform.exception.RoadmapAlreadyExistsException;
 import com.studentguide.platform.repository.ProjectRepository;
 import com.studentguide.platform.repository.RoadmapRepository;
-import com.studentguide.platform.repository.StudentProfileRepository;
-import com.studentguide.platform.repository.UserRepository;
+import com.studentguide.platform.service.OwnershipValidator;
+import com.studentguide.platform.service.ProfileResolver;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,57 +30,70 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * AIIntegrationService — Orchestration layer for AI roadmap generation.
  *
- * Responsibilities (and nothing more):
- *   1. Validate ownership: project must belong to the caller.
- *   2. Guard against duplicate roadmaps.
- *   3. Build the AIRequest from domain data.
- *   4. Call the FastAPI microservice via RestTemplate.
- *   5. Validate the AI response is non-null and has milestones.
- *   6. Delegate persistence to RoadmapPersistenceService.
- *   7. Return a confirmation AIResponse to the controller.
+ * Responsibilities (strictly ordered — nothing more):
+ *   1. Resolve the caller's StudentProfile.
+ *   2. Resolve the Project and assert ownership.
+ *   3. Guard against duplicate roadmaps (idempotency check).
+ *   4. Build the AIRequest DTO from domain data.
+ *   5. Call the FastAPI microservice (OUTSIDE any database transaction).
+ *   6. Validate the AI response is non-null and has milestones.
+ *   7. Delegate all persistence to RoadmapPersistenceService (@Transactional).
+ *   8. Return a confirmation AIResponse to the controller.
  *
- * FastAPI MUST NEVER write to the database — all persistence happens here
- * via RoadmapPersistenceService.
+ * ── Transaction Architecture (Phase 2 fix) ─────────────────────────────────
+ * The previous version was annotated @Transactional at the class level. This
+ * caused an open DB connection to be held for the ENTIRE duration of the FastAPI
+ * HTTP call (potentially 10–30 seconds). Under concurrent load, this would exhaust
+ * the connection pool and cause cascading 500 errors.
+ *
+ * Correct architecture:
+ *   - This class carries NO @Transactional annotation.
+ *   - Steps 1–6 run without a transaction (reads are short, network call is long).
+ *   - Step 7 (persistence) is transactional via RoadmapPersistenceService,
+ *     which opens and commits its own transaction atomically.
+ *
+ * FastAPI MUST NEVER write to the database — all persistence happens in
+ * RoadmapPersistenceService.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class AIIntegrationService {
 
-    private final UserRepository userRepository;
-    private final StudentProfileRepository studentProfileRepository;
     private final ProjectRepository projectRepository;
     private final RoadmapRepository roadmapRepository;
     private final RestTemplate restTemplate;
     private final AiServiceConfig aiServiceConfig;
     private final RoadmapPersistenceService roadmapPersistenceService;
+    private final ProfileResolver profileResolver;
+    private final OwnershipValidator ownershipValidator;
 
     /**
      * POST /api/projects/{projectId}/generate-roadmap
      *
-     * @param email      authenticated caller's email (from JWT)
-     * @param projectId  the project for which to generate a roadmap
+     * Correct execution order (no transaction wraps the HTTP call):
+     *   1. Resolve profile (short DB read)
+     *   2. Resolve project and assert ownership (short DB read)
+     *   3. Check for existing roadmap (short DB read)
+     *   4. Build AIRequest (in-memory, no DB)
+     *   5. Call FastAPI — long-running, NO transaction held
+     *   6. Validate AI response (in-memory, no DB)
+     *   7. Persist hierarchy via RoadmapPersistenceService (@Transactional, short DB writes)
+     *
+     * @param email     authenticated caller's email (from JWT)
+     * @param projectId the project for which to generate a roadmap
      * @return AIResponse confirmation with the new roadmapId
      */
     public AIResponse generateRoadmap(String email, Long projectId) {
 
         // ── 1. Resolve caller ─────────────────────────────────────────────────
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
-
-        StudentProfile profile = studentProfileRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "StudentProfile", "userId", user.getId()));
+        StudentProfile profile = profileResolver.resolve(email);
 
         // ── 2. Resolve and ownership-check the project ────────────────────────
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", "id", projectId));
 
-        if (!project.getStudentProfile().getId().equals(profile.getId())) {
-            throw new AccessDeniedException(
-                    "Access denied: this project does not belong to you.");
-        }
+        ownershipValidator.assertOwnsProject(profile, project);
 
         // ── 3. Prevent duplicate roadmaps ─────────────────────────────────────
         if (roadmapRepository.findByProjectId(projectId).isPresent()) {
@@ -93,16 +103,17 @@ public class AIIntegrationService {
         // ── 4. Build the AI request ───────────────────────────────────────────
         AIRequest aiRequest = buildAIRequest(project, profile);
 
-        // ── 5. Call FastAPI ───────────────────────────────────────────────────
+        // ── 5. Call FastAPI (NO database transaction held at this point) ──────
         AIRoadmapResponse aiResponse = callAIService(aiRequest);
 
         // ── 6. Validate the response ──────────────────────────────────────────
         validateAIResponse(aiResponse);
 
-        // ── 7. Persist hierarchy via dedicated service ────────────────────────
+        // ── 7. Persist hierarchy — RoadmapPersistenceService opens @Transactional
         Roadmap roadmap = roadmapPersistenceService.persistRoadmap(project, aiResponse);
 
-        log.info("Roadmap generation complete: roadmapId={}, projectId={}", roadmap.getId(), projectId);
+        log.info("Roadmap generation complete: roadmapId={}, projectId={}, milestones={}",
+                roadmap.getId(), projectId, aiResponse.getMilestones().size());
 
         return new AIResponse(
                 roadmap.getId(),
@@ -128,7 +139,6 @@ public class AIIntegrationService {
                         .toList()
                 : List.of();
 
-        // Derive a timeline string from the project deadline or default
         String timeline = project.getDeadline() != null
                 ? project.getDeadline().toString()
                 : "8 weeks";
@@ -142,21 +152,22 @@ public class AIIntegrationService {
                 .experienceLevel(project.getSkillLevel())
                 .currentSkills(skills)
                 .timeline(timeline)
-                .weeklyHours(20) // sensible default; can be user-configurable later
+                .weeklyHours(20) // sensible default; can be user-configurable in v2
                 .learningGoal(profile.getLearningGoal())
                 .build();
     }
 
     /**
      * Calls the FastAPI /generate-roadmap endpoint.
-     * Wraps all HTTP and connection errors into AIServiceException
-     * so the caller gets a clean 502 BAD_GATEWAY response.
+     * Wraps all HTTP and connection errors into AIServiceException (502 BAD_GATEWAY).
+     *
+     * RestTemplate is configured with connect + read timeouts in AiServiceConfig.
      */
     private AIRoadmapResponse callAIService(AIRequest aiRequest) {
         String url = aiServiceConfig.getAiServiceUrl() + "/generate-roadmap";
 
-        log.info("Calling AI service at {} for project '{}'",
-                url, aiRequest.getProjectName());
+        log.info("Calling AI service: url={}, project='{}', profileBranch='{}'",
+                url, aiRequest.getProjectName(), aiRequest.getBranch());
 
         try {
             AIRoadmapResponse response = restTemplate.postForObject(
@@ -165,14 +176,14 @@ public class AIIntegrationService {
                     AIRoadmapResponse.class);
 
             if (response == null) {
-                throw new AIServiceException(
-                        "AI service returned an empty response.");
+                throw new AIServiceException("AI service returned an empty (null) response.");
             }
 
+            log.info("AI service responded: milestonesReceived={}", response.getMilestones().size());
             return response;
 
         } catch (ResourceAccessException e) {
-            // Connection refused / timeout — FastAPI is likely down
+            // Connection refused or read/connect timeout
             log.error("AI service unreachable at {}: {}", url, e.getMessage());
             throw new AIServiceException(
                     "AI service is currently unavailable. Please try again later.", e);
@@ -190,16 +201,18 @@ public class AIIntegrationService {
     }
 
     /**
-     * Validates that the AI response has the minimum required data.
-     * Throws AIServiceException (502) if validation fails.
+     * Validates that the AI response contains the minimum required data.
+     * Throws AIServiceException (502) if the response is structurally incomplete.
      */
     private void validateAIResponse(AIRoadmapResponse response) {
         if (response.getMilestones() == null || response.getMilestones().isEmpty()) {
+            log.error("AI service returned a response with no milestones");
             throw new AIServiceException(
                     "AI service returned a response with no milestones. Generation failed.");
         }
         if (response.getPhaseWiseLearningPlan() == null
                 || response.getPhaseWiseLearningPlan().isEmpty()) {
+            log.error("AI service returned a response with no learning phases");
             throw new AIServiceException(
                     "AI service returned a response with no learning phases. Generation failed.");
         }

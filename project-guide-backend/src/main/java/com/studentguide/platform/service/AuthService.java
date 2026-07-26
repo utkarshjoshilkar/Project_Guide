@@ -7,6 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import com.studentguide.platform.dto.AuthResponse;
 import com.studentguide.platform.dto.LoginRequest;
 import com.studentguide.platform.dto.RegisterRequest;
@@ -14,6 +15,7 @@ import com.studentguide.platform.entity.User;
 import com.studentguide.platform.repository.UserRepository;
 import com.studentguide.platform.security.JwtService;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -43,6 +45,7 @@ public class AuthService {
 
         userRepository.save(user);
 
+        log.info("User registered: email={}", request.getEmail());
         return new AuthResponse("User registered successfully", null);
     }
 
@@ -55,11 +58,13 @@ public class AuthService {
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            log.warn("Failed login attempt for email={}", request.getEmail());
             throw new InvalidCredentialsException("Invalid email or password");
         }
 
         String token = jwtService.generateToken(user);
 
+        log.info("User authenticated: email={}", request.getEmail());
         return new AuthResponse("Login Successful", token);
     }
 }

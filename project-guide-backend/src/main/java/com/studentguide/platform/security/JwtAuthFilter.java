@@ -9,11 +9,15 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * JWT Authentication Filter — runs exactly once per HTTP request.
@@ -30,6 +34,7 @@ import lombok.RequiredArgsConstructor;
  * the filter simply passes the request through without setting authentication.
  * Spring Security will then reject the request with 401 Unauthorized.
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -82,9 +87,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 // This is what tells Spring Security "this request is authenticated"
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
+        } catch (ExpiredJwtException e) {
+            // Log expired tokens as WARN — this is a normal, expected scenario (not an attack)
+            log.warn("JWT token expired for request [{}]: {}",
+                    request.getRequestURI(), e.getMessage());
+
+        } catch (SignatureException e) {
+            // Tampered token — this IS suspicious and worth monitoring
+            log.warn("JWT signature validation failed for request [{}] — possible tampering",
+                    request.getRequestURI());
+
+        } catch (MalformedJwtException e) {
+            log.warn("Malformed JWT for request [{}]: {}",
+                    request.getRequestURI(), e.getMessage());
+
         } catch (Exception e) {
-            // Token is invalid, expired, or tampered with.
-            // Don't set authentication — Spring Security will return 401.
+            // Unexpected error (e.g. DB error in loadUserByUsername)
+            log.error("Unexpected error during JWT validation for request [{}]: {} — {}",
+                    request.getRequestURI(), e.getClass().getSimpleName(), e.getMessage());
         }
 
         // Step 10: Always continue the filter chain

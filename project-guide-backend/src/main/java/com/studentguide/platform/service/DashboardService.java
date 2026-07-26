@@ -29,7 +29,21 @@ import com.studentguide.platform.repository.TaskRepository;
 import com.studentguide.platform.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+/**
+ * DashboardService — assembles the full dashboard response for a student.
+ *
+ * Phase 2 refactoring notes:
+ *   - ProfileResolver is intentionally NOT used here. The dashboard gracefully
+ *     handles students who haven't created a profile yet (profileOpt may be empty).
+ *     ProfileResolver would throw ResourceNotFoundException in that case.
+ *   - Double roadmap lookup eliminated: previously, roadmaps were fetched once
+ *     per project in the progress loop AND again inside toProjectSummary().
+ *     Now, all roadmaps are fetched once as a Map<projectId, Roadmap> and
+ *     passed directly into toProjectSummary(), halving the roadmap query count.
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -47,30 +61,41 @@ public class DashboardService {
      * GET /api/dashboard
      *
      * Returns a full summary for the authenticated student:
-     * - Profile info (nullable if not yet created)
-     * - Total project count and breakdown by status
-     * - Overall progress % (average across projects that have a roadmap)
-     * - Last 3 projects updated, for the "Recent Activity" section
-     * - Per-project summary with task/milestone counts and roadmap progress
+     *   - Profile info (nullable if not yet created)
+     *   - Total project count and breakdown by status
+     *   - Overall progress % (average across projects that have a roadmap)
+     *   - Last 3 recently updated projects (recent activity section)
+     *   - Per-project summary with task/milestone counts and roadmap progress
      */
     public DashboardResponse getDashboard(String email) {
 
-        // ── 1. Resolve the authenticated user ──────────────────────────────
+        // ── 1. Resolve the authenticated user ──────────────────────────────────
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
 
-        // ── 2. Resolve their student profile (optional) ────────────────────
+        // ── 2. Resolve their student profile (optional) ─────────────────────────
+        // Dashboard must work even if no profile has been created yet.
         Optional<StudentProfile> profileOpt =
                 studentProfileRepository.findByUserId(user.getId());
 
         StudentProfileResponse profileResponse = profileOpt.map(this::mapProfile).orElse(null);
 
-        // ── 3. Fetch all projects (empty if no profile yet) ─────────────────
+        // ── 3. Fetch all projects (empty if no profile yet) ─────────────────────
         List<Project> projects = profileOpt
                 .map(p -> projectRepository.findByStudentProfileId(p.getId()))
                 .orElse(List.of());
 
-        // ── 4. Stats ─────────────────────────────────────────────────────────
+        // ── 4. Fetch all roadmaps for these projects in ONE lookup ──────────────
+        // Build a Map<projectId, Roadmap> used by both the progress loop and
+        // toProjectSummary(), eliminating the previous double-query per project.
+        List<Long> projectIds = projects.stream().map(Project::getId).toList();
+        Map<Long, Roadmap> roadmapByProjectId = projectIds.stream()
+                .map(id -> roadmapRepository.findByProjectId(id))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toMap(r -> r.getProject().getId(), r -> r));
+
+        // ── 5. Stats ────────────────────────────────────────────────────────────
         int totalProjects = projects.size();
 
         Map<String, Long> projectsByStatus = projects.stream()
@@ -78,11 +103,8 @@ public class DashboardService {
                         p -> p.getStatus().name(),
                         Collectors.counting()));
 
-        // ── 5. Overall progress — average % across projects with a roadmap ──
-        List<Double> progressValues = projects.stream()
-                .map(project -> roadmapRepository.findByProject(project))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
+        // ── 6. Overall progress — average % across projects with a roadmap ──────
+        List<Double> progressValues = roadmapByProjectId.values().stream()
                 .map(roadmap -> progressService.calculateRoadmapProgress(roadmap.getId()))
                 .collect(Collectors.toList());
 
@@ -94,17 +116,20 @@ public class DashboardService {
                                 .average()
                                 .orElse(0.0) * 10.0) / 10.0;
 
-        // ── 6. Recent projects — last 3 by updatedAt ────────────────────────
+        // ── 7. Recent projects — last 3 by updatedAt ────────────────────────────
         List<ProjectResponse> recentProjects = projects.stream()
                 .sorted(Comparator.comparing(Project::getUpdatedAt).reversed())
                 .limit(3)
                 .map(this::toProjectResponse)
                 .collect(Collectors.toList());
 
-        // ── 7. Per-project summaries ─────────────────────────────────────────
+        // ── 8. Per-project summaries (roadmap passed in — no second DB lookup) ──
         List<ProjectSummaryResponse> projectSummaries = projects.stream()
-                .map(this::toProjectSummary)
+                .map(project -> toProjectSummary(project, roadmapByProjectId.get(project.getId())))
                 .collect(Collectors.toList());
+
+        log.info("Dashboard loaded: userId={}, projects={}, withRoadmap={}",
+                user.getId(), totalProjects, roadmapByProjectId.size());
 
         return new DashboardResponse(
                 user.getId(),
@@ -124,13 +149,12 @@ public class DashboardService {
 
     /**
      * Builds a ProjectSummaryResponse for one project.
-     * If the project has no roadmap yet, all numeric fields are 0.
+     * Accepts a pre-fetched roadmap (may be null if no roadmap exists yet).
+     * This eliminates the previous double roadmap lookup per project.
      */
-    private ProjectSummaryResponse toProjectSummary(Project project) {
+    private ProjectSummaryResponse toProjectSummary(Project project, Roadmap roadmap) {
 
-        Optional<Roadmap> roadmapOpt = roadmapRepository.findByProject(project);
-
-        if (roadmapOpt.isEmpty()) {
+        if (roadmap == null) {
             return new ProjectSummaryResponse(
                     project.getId(),
                     project.getTitle(),
@@ -145,7 +169,6 @@ public class DashboardService {
                     0);    // totalLearningHoursEstimate
         }
 
-        Roadmap roadmap = roadmapOpt.get();
         Long roadmapId = roadmap.getId();
 
         double roadmapProgress = progressService.calculateRoadmapProgress(roadmapId);
@@ -158,19 +181,15 @@ public class DashboardService {
         long completedTasks = taskRepository.countByMilestoneRoadmapIdAndStatus(roadmapId, TaskStatus.DONE);
         long pendingTasks = totalTasks - completedTasks;
 
-        // ── Phase 4: Estimated completion date ───────────────────────────────
-        // Prefer the project's explicit deadline; fall back to roadmap generatedAt + duration.
-        LocalDate estimatedCompletionDate;
-        if (project.getDeadline() != null) {
-            estimatedCompletionDate = project.getDeadline();
-        } else {
-            estimatedCompletionDate = roadmap.getGeneratedAt()
-                    .toLocalDate()
-                    .plusWeeks(roadmap.getEstimatedDurationWeeks());
-        }
+        // Estimated completion date: prefer the project's deadline; fall back to
+        // generatedAt + estimatedDurationWeeks.
+        LocalDate estimatedCompletionDate = project.getDeadline() != null
+                ? project.getDeadline()
+                : roadmap.getGeneratedAt()
+                        .toLocalDate()
+                        .plusWeeks(roadmap.getEstimatedDurationWeeks());
 
-        // ── Phase 4: Total learning hours estimate ────────────────────────────
-        // Formula: totalMilestones × 7 estimatedDays × 2 hours/day
+        // Estimated learning hours: milestones × 7 estimated days × 2 hours/day
         int totalLearningHoursEstimate = totalMilestones * 7 * 2;
 
         return new ProjectSummaryResponse(

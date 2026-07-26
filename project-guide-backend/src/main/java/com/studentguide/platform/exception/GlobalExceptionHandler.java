@@ -11,8 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import com.studentguide.platform.exception.AIServiceException;
-import com.studentguide.platform.exception.RoadmapAlreadyExistsException;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Centralized exception handler for the entire application.
@@ -23,6 +22,7 @@ import com.studentguide.platform.exception.RoadmapAlreadyExistsException;
  *                       them into a structured ApiErrorResponse instead of a
  *                       raw stack trace.
  */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -137,13 +137,13 @@ public class GlobalExceptionHandler {
 
     /**
      * Handles: any unexpected exception not caught by the handlers above.
+     * Logs the full stack trace so it is visible in application logs.
+     * Returns a safe generic message to the client (no internal details exposed).
      * Returns: 500 INTERNAL SERVER ERROR
-     *
-     * Note: In production, you would log ex.getMessage() here instead of
-     * exposing raw exception messages to clients.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleGenericException(Exception ex) {
+        log.error("Unexpected error [{}]: {}", ex.getClass().getSimpleName(), ex.getMessage(), ex);
         ApiErrorResponse error = new ApiErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Internal Server Error",

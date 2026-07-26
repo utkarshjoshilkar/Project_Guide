@@ -2,25 +2,30 @@ package com.studentguide.platform.service;
 
 import java.util.List;
 
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.studentguide.platform.dto.MilestoneResponse;
 import com.studentguide.platform.entity.Milestone;
 import com.studentguide.platform.entity.MilestoneStatus;
-import com.studentguide.platform.entity.Project;
-import com.studentguide.platform.entity.Roadmap;
 import com.studentguide.platform.entity.StudentProfile;
-import com.studentguide.platform.entity.User;
 import com.studentguide.platform.exception.ResourceNotFoundException;
 import com.studentguide.platform.repository.MilestoneRepository;
 import com.studentguide.platform.repository.RoadmapRepository;
-import com.studentguide.platform.repository.StudentProfileRepository;
-import com.studentguide.platform.repository.UserRepository;
+import com.studentguide.platform.entity.Roadmap;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+/**
+ * MilestoneService — manages milestone retrieval and status transitions.
+ *
+ * Refactored (Phase 2):
+ *   - getProfileByEmail() removed; replaced by {@link ProfileResolver}.
+ *   - Inline ownership assertions removed; replaced by {@link OwnershipValidator}.
+ *   - Removed repository dependencies: UserRepository, StudentProfileRepository.
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -28,34 +33,13 @@ public class MilestoneService {
 
     private final MilestoneRepository milestoneRepository;
     private final RoadmapRepository roadmapRepository;
-    private final StudentProfileRepository studentProfileRepository;
-    private final UserRepository userRepository;
+    private final ProfileResolver profileResolver;
+    private final OwnershipValidator ownershipValidator;
 
     /**
-     * Returns the logged-in student's profile using email.
-     */
-    private StudentProfile getProfileByEmail(String email) {
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "User",
-                                "email",
-                                email));
-
-        return studentProfileRepository.findByUserId(user.getId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "StudentProfile",
-                                "userId",
-                                user.getId()));
-    }
-
-    /**
-     * Converts Entity -> DTO
+     * Converts Milestone entity → DTO.
      */
     private MilestoneResponse toResponse(Milestone milestone) {
-
         return new MilestoneResponse(
                 milestone.getId(),
                 milestone.getRoadmap().getId(),
@@ -73,34 +57,22 @@ public class MilestoneService {
      */
     @Transactional(readOnly = true)
     public List<MilestoneResponse> getMilestones(String email, Long roadmapId) {
-
-        StudentProfile profile = getProfileByEmail(email);
+        StudentProfile profile = profileResolver.resolve(email);
 
         Roadmap roadmap = roadmapRepository.findById(roadmapId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Roadmap",
-                                "id",
-                                roadmapId));
+                .orElseThrow(() -> new ResourceNotFoundException("Roadmap", "id", roadmapId));
 
-        Project project = roadmap.getProject();
+        ownershipValidator.assertOwnsRoadmap(profile, roadmap);
 
-        if (!project.getStudentProfile().getId().equals(profile.getId())) {
-            throw new AccessDeniedException(
-                    "Access denied: this roadmap does not belong to you.");
-        }
-
-        List<Milestone> milestones =
-                milestoneRepository.findByRoadmapIdOrderBySequenceOrderAsc(roadmapId);
-
-        return milestones.stream()
+        return milestoneRepository.findByRoadmapIdOrderBySequenceOrderAsc(roadmapId)
+                .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     /**
-     * PATCH /api/roadmaps/{roadmapId}/milestones/{milestoneId}/status?status=COMPLETED
-     * Updates the status of a single milestone (Task module).
+     * PATCH /api/roadmaps/{roadmapId}/milestones/{milestoneId}/status
+     * Updates the status of a single milestone.
      * Ownership-checked: the milestone must belong to the caller's roadmap/project.
      */
     public MilestoneResponse updateMilestoneStatus(
@@ -108,25 +80,16 @@ public class MilestoneService {
             Long milestoneId,
             MilestoneStatus newStatus) {
 
-        StudentProfile profile = getProfileByEmail(email);
+        StudentProfile profile = profileResolver.resolve(email);
 
         Milestone milestone = milestoneRepository.findById(milestoneId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Milestone",
-                                "id",
-                                milestoneId));
+                .orElseThrow(() -> new ResourceNotFoundException("Milestone", "id", milestoneId));
 
-        // Navigate the lazy chain: Milestone → Roadmap → Project → StudentProfile
-        // @Transactional on this method keeps the session alive for these traversals.
-        Project project = milestone.getRoadmap().getProject();
-
-        if (!project.getStudentProfile().getId().equals(profile.getId())) {
-            throw new AccessDeniedException(
-                    "Access denied: this milestone does not belong to you.");
-        }
+        // Navigate: Milestone → Roadmap → Project (session is alive — @Transactional on this method)
+        ownershipValidator.assertOwnsMilestone(profile, milestone);
 
         milestone.setStatus(newStatus);
+        log.info("Milestone status updated: milestoneId={}, newStatus={}", milestoneId, newStatus);
         return toResponse(milestoneRepository.save(milestone));
     }
 }

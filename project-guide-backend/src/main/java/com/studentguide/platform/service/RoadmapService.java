@@ -1,24 +1,38 @@
 package com.studentguide.platform.service;
 
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.studentguide.platform.dto.RoadmapResponse;
-import com.studentguide.platform.entity.MilestoneStatus;
 import com.studentguide.platform.entity.Project;
 import com.studentguide.platform.entity.Roadmap;
 import com.studentguide.platform.entity.StudentProfile;
-import com.studentguide.platform.entity.User;
 import com.studentguide.platform.exception.ResourceNotFoundException;
-import com.studentguide.platform.repository.MilestoneRepository;
 import com.studentguide.platform.repository.ProjectRepository;
 import com.studentguide.platform.repository.RoadmapRepository;
-import com.studentguide.platform.repository.StudentProfileRepository;
-import com.studentguide.platform.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+/**
+ * RoadmapService — retrieves and maps the roadmap for a given project.
+ *
+ * Refactored (Phase 2 + Phase 3):
+ *   - getProfileByEmail() removed; replaced by {@link ProfileResolver}.
+ *   - Inline ownership assertion removed; replaced by {@link OwnershipValidator}.
+ *   - Removed repository dependencies: UserRepository, StudentProfileRepository,
+ *     MilestoneRepository (no longer needed here).
+ *
+ * Phase 3 — Unified progress algorithm:
+ *   Previously, toResponse() calculated progress by counting COMPLETED milestones
+ *   (milestone-count algorithm). DashboardService used task-based progress via
+ *   ProgressService. This produced DIFFERENT values for the same roadmap depending
+ *   on which endpoint was called — a data consistency bug.
+ *
+ *   Fix: toResponse() now delegates to {@link ProgressService#calculateRoadmapProgress},
+ *   establishing a SINGLE source of truth for progress across the entire application.
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -26,35 +40,19 @@ public class RoadmapService {
 
     private final RoadmapRepository roadmapRepository;
     private final ProjectRepository projectRepository;
-    private final StudentProfileRepository studentProfileRepository;
-    private final UserRepository userRepository;
-    private final MilestoneRepository milestoneRepository;
-
-    private StudentProfile getProfileByEmail(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
-
-        return studentProfileRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "StudentProfile",
-                        "userId",
-                        user.getId()));
-    }
+    private final ProfileResolver profileResolver;
+    private final OwnershipValidator ownershipValidator;
+    private final ProgressService progressService;
 
     /**
-     * Converts Roadmap entity to DTO.
-     * Calculates the real completion percentage from milestones:
-     *   completedMilestones / totalMilestones * 100
-     * Returns 0.0 if the roadmap has no milestones yet.
+     * Converts a Roadmap entity to its DTO.
+     *
+     * Progress is always calculated via ProgressService (task-based), which is
+     * the same algorithm used by DashboardService. This ensures a student sees
+     * identical progress values regardless of which endpoint they call.
      */
     private RoadmapResponse toResponse(Roadmap roadmap) {
-        long total = milestoneRepository.countByRoadmapId(roadmap.getId());
-        long completed = milestoneRepository.countByRoadmapIdAndStatus(
-                roadmap.getId(), MilestoneStatus.COMPLETED);
-
-        double progress = total == 0
-                ? 0.0
-                : Math.round((completed * 100.0 / total) * 10.0) / 10.0;
+        double progress = progressService.calculateRoadmapProgress(roadmap.getId());
 
         return new RoadmapResponse(
                 roadmap.getId(),
@@ -68,28 +66,18 @@ public class RoadmapService {
     /**
      * GET /api/projects/{projectId}/roadmap
      * Returns the roadmap for a project.
-     * Ownership-checked: the project must belong to the calling student.
+     * Ownership-checked: the project must belong to the authenticated student.
      */
     public RoadmapResponse getRoadmap(String email, Long projectId) {
-        StudentProfile profile = getProfileByEmail(email);
+        StudentProfile profile = profileResolver.resolve(email);
 
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Project",
-                        "id",
-                        projectId));
+                .orElseThrow(() -> new ResourceNotFoundException("Project", "id", projectId));
 
-        if (!project.getStudentProfile().getId().equals(profile.getId())) {
-            throw new AccessDeniedException(
-                    "Access denied: this project does not belong to you.");
-        }
+        ownershipValidator.assertOwnsProject(profile, project);
 
         Roadmap roadmap = roadmapRepository.findByProject(project)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Roadmap",
-                                "projectId",
-                                projectId));
+                .orElseThrow(() -> new ResourceNotFoundException("Roadmap", "projectId", projectId));
 
         return toResponse(roadmap);
     }

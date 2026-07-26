@@ -2,8 +2,8 @@ package com.studentguide.platform.service;
 
 import java.util.List;
 
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.studentguide.platform.dto.ProjectRequest;
 import com.studentguide.platform.dto.ProjectResponse;
@@ -12,32 +12,28 @@ import com.studentguide.platform.entity.ProjectStatus;
 import com.studentguide.platform.entity.StudentProfile;
 import com.studentguide.platform.exception.ResourceNotFoundException;
 import com.studentguide.platform.repository.ProjectRepository;
-import com.studentguide.platform.repository.StudentProfileRepository;
-import com.studentguide.platform.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+/**
+ * ProjectService — manages the full lifecycle of a student's project.
+ *
+ * Refactored (Phase 2):
+ *   - getProfileByEmail() removed; replaced by injected {@link ProfileResolver}.
+ *   - Inline ownership assertions removed; replaced by injected {@link OwnershipValidator}.
+ *   - Removed unused repository dependencies: UserRepository, StudentProfileRepository.
+ *   - Added @Slf4j for structured logging on mutations.
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
-    private final StudentProfileRepository studentProfileRepository;
-    private final UserRepository userRepository;
-
-    // ─────────────────────────────────────────────
-    // Helper: resolve the logged-in user's email → StudentProfile
-    // Throws a clear exception at each step so the client gets
-    // a meaningful error (404) rather than a NullPointerException.
-    // ─────────────────────────────────────────────
-    private StudentProfile getProfileByEmail(String email) {
-        Long userId = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email))
-                .getId();
-
-        return studentProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("StudentProfile", "userId", userId));
-    }
+    private final ProfileResolver profileResolver;
+    private final OwnershipValidator ownershipValidator;
 
     // ─────────────────────────────────────────────
     // Helper: Project entity → ProjectResponse DTO
@@ -64,7 +60,7 @@ public class ProjectService {
      * Status defaults to IDEA_SUBMITTED (set via @PrePersist on the entity).
      */
     public ProjectResponse createProject(String email, ProjectRequest request) {
-        StudentProfile profile = getProfileByEmail(email);
+        StudentProfile profile = profileResolver.resolve(email);
 
         Project project = Project.builder()
                 .studentProfile(profile)
@@ -77,15 +73,18 @@ public class ProjectService {
                 .expectedOutcome(request.getExpectedOutcome())
                 .build();
 
-        return toResponse(projectRepository.save(project));
+        Project saved = projectRepository.save(project);
+        log.info("Project created: projectId={}, profileId={}", saved.getId(), profile.getId());
+        return toResponse(saved);
     }
 
     /**
      * GET /api/projects/my
      * Returns all projects belonging to the logged-in student.
      */
+    @Transactional(readOnly = true)
     public List<ProjectResponse> getMyProjects(String email) {
-        StudentProfile profile = getProfileByEmail(email);
+        StudentProfile profile = profileResolver.resolve(email);
 
         return projectRepository.findByStudentProfile(profile)
                 .stream()
@@ -96,36 +95,29 @@ public class ProjectService {
     /**
      * GET /api/projects/{id}
      * Returns a single project by ID — only if it belongs to the logged-in student.
-     * This prevents one student from reading another's project.
      */
+    @Transactional(readOnly = true)
     public ProjectResponse getProjectById(String email, Long projectId) {
-        StudentProfile profile = getProfileByEmail(email);
+        StudentProfile profile = profileResolver.resolve(email);
 
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", "id", projectId));
 
-        // Ownership check — 403 if the project belongs to someone else.
-        if (!project.getStudentProfile().getId().equals(profile.getId())) {
-            throw new AccessDeniedException("Access denied: this project does not belong to you.");
-        }
-
+        ownershipValidator.assertOwnsProject(profile, project);
         return toResponse(project);
     }
 
     /**
      * PUT /api/projects/{id}
-     * Full update of a project's details (all fields replaced).
-     * Only the owner can update their project.
+     * Full update of a project's details. Only the owner can update.
      */
     public ProjectResponse updateProject(String email, Long projectId, ProjectRequest request) {
-        StudentProfile profile = getProfileByEmail(email);
+        StudentProfile profile = profileResolver.resolve(email);
 
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", "id", projectId));
 
-        if (!project.getStudentProfile().getId().equals(profile.getId())) {
-            throw new AccessDeniedException("Access denied: this project does not belong to you.");
-        }
+        ownershipValidator.assertOwnsProject(profile, project);
 
         project.setTitle(request.getTitle());
         project.setDescription(request.getDescription());
@@ -140,18 +132,15 @@ public class ProjectService {
 
     /**
      * PATCH /api/projects/{id}/status
-     * Changes only the status field — useful for lifecycle transitions
-     * (e.g. IDEA_SUBMITTED → IN_PROGRESS → COMPLETED).
+     * Changes only the status field — useful for lifecycle transitions.
      */
     public ProjectResponse updateStatus(String email, Long projectId, ProjectStatus newStatus) {
-        StudentProfile profile = getProfileByEmail(email);
+        StudentProfile profile = profileResolver.resolve(email);
 
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", "id", projectId));
 
-        if (!project.getStudentProfile().getId().equals(profile.getId())) {
-            throw new AccessDeniedException("Access denied: this project does not belong to you.");
-        }
+        ownershipValidator.assertOwnsProject(profile, project);
 
         project.setStatus(newStatus);
         return toResponse(projectRepository.save(project));
@@ -162,15 +151,14 @@ public class ProjectService {
      * Deletes a project — only if the logged-in student owns it.
      */
     public void deleteProject(String email, Long projectId) {
-        StudentProfile profile = getProfileByEmail(email);
+        StudentProfile profile = profileResolver.resolve(email);
 
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", "id", projectId));
 
-        if (!project.getStudentProfile().getId().equals(profile.getId())) {
-            throw new AccessDeniedException("Access denied: this project does not belong to you.");
-        }
+        ownershipValidator.assertOwnsProject(profile, project);
 
         projectRepository.delete(project);
+        log.info("Project deleted: projectId={}, profileId={}", projectId, profile.getId());
     }
 }

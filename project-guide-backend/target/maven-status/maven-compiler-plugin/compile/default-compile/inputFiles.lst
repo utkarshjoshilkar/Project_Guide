@@ -76,6 +76,8 @@ D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentg
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\AuthService.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\DashboardService.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\MilestoneService.java
+D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\OwnershipValidator.java
+D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\ProfileResolver.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\ProgressService.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\ProjectService.java
 D:\Projects\Project_Guide\Guide\project-guide-backend\src\main\java\com\studentguide\platform\service\ResourceService.java
