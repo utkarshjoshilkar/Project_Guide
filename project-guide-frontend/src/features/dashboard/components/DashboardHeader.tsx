@@ -21,6 +21,11 @@ export const DashboardHeader = ({ fullName }: DashboardHeaderProps) => {
   return (
     <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
       <div>
+        <div className="flex items-center text-sm text-text-muted mb-2">
+          <span>Home</span>
+          <span className="mx-2 opacity-50">&gt;</span>
+          <span className="text-text-main">Dashboard</span>
+        </div>
         <h1 className="text-3xl font-bold text-text-main mb-1">
           Welcome back, <span className="text-primary-light">{fullName.split(' ')[0]}</span> 👋
         </h1>

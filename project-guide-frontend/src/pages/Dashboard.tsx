@@ -18,6 +18,7 @@ import { ProgressCard } from '@/features/dashboard/components/ProgressCard';
 import { StudentSummaryCard } from '@/features/dashboard/components/StudentSummaryCard';
 import { EmptyState } from '@/features/dashboard/components/EmptyState';
 import { LoadingSkeleton } from '@/features/dashboard/components/LoadingSkeleton';
+import ErrorState from '@/components/ui/ErrorState';
 
 import { FolderKanban, CheckSquare, ListTodo, AlertTriangle } from 'lucide-react';
 
@@ -57,17 +58,10 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <AlertTriangle size={48} className="text-red-400 mb-4" />
-        <h2 className="text-2xl font-bold mb-2">Something went wrong</h2>
-        <p className="text-text-muted mb-6">{error}</p>
-        <button 
-          onClick={fetchDashboard}
-          className="px-6 py-2 bg-surface hover:bg-surface-light border border-white/10 rounded-lg transition-colors"
-        >
-          Try Again
-        </button>
-      </div>
+      <ErrorState 
+        message={error} 
+        onRetry={fetchDashboard} 
+      />
     );
   }
 

@@ -10,8 +10,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ProjectHeader } from '@/features/projects/components/ProjectHeader';
 import { ProjectForm } from '@/features/projects/components/ProjectForm';
 import { projectService } from '@/services/projectService';
-import { ProjectFormData, ProjectResponse } from '@/types/project';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ProjectFormData } from '@/types/project';
+import PageHeader from '@/components/layout/PageHeader';
+import LoadingState from '@/components/ui/LoadingState';
+import ErrorState from '@/components/ui/ErrorState';
 
 const EditProject = () => {
   const { id } = useParams<{ id: string }>();
@@ -55,37 +57,36 @@ const EditProject = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64 text-text-muted">
-        <Loader2 className="animate-spin mr-2" size={24} /> Loading project...
-      </div>
-    );
+    return <LoadingState message="Loading project..." />;
   }
 
   if (error || !initialData) {
     return (
-      <div className="text-center py-12 text-red-400 bg-red-500/10 rounded-xl border border-red-500/20 max-w-3xl mx-auto">
-        <p>{error}</p>
-        <button onClick={() => navigate('/projects')} className="mt-4 px-4 py-2 bg-surface rounded-lg text-white">
-          Back to Projects
-        </button>
-      </div>
+      <ErrorState 
+        message={error || 'Project not found.'}
+        onRetry={() => navigate('/projects')}
+      />
     );
   }
 
   return (
     <div className="max-w-3xl mx-auto py-4">
-      <button 
-        onClick={() => navigate(`/projects/${id}`)}
-        className="flex items-center gap-2 text-text-muted hover:text-white transition-colors mb-6 text-sm"
-      >
-        <ArrowLeft size={16} />
-        Back to Project
-      </button>
-
-      <ProjectHeader 
+      <PageHeader 
         title="Edit Project" 
         subtitle="Update the details of your learning project."
+        breadcrumbs={[
+          { label: 'Home', path: '/dashboard' },
+          { label: 'Projects', path: '/projects' },
+          { label: 'Edit Project' }
+        ]}
+        actions={
+          <button 
+            onClick={() => navigate(`/projects/${id}`)}
+            className="px-4 py-2 bg-surface hover:bg-surface-light border border-white/10 rounded-lg text-sm transition-colors text-white"
+          >
+            Cancel
+          </button>
+        }
       />
 
       <ProjectForm initialData={initialData} onSubmit={handleSubmit} isEditMode />

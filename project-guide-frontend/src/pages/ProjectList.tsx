@@ -9,11 +9,11 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { projectService } from '@/services/projectService';
 import { ProjectResponse } from '@/types/project';
-
-import { ProjectHeader } from '@/features/projects/components/ProjectHeader';
+import PageHeader from '@/components/layout/PageHeader';
 import { ProjectCard } from '@/features/projects/components/ProjectCard';
 import { EmptyProjects } from '@/features/projects/components/EmptyProjects';
 import { LoadingSkeleton } from '@/features/projects/components/LoadingSkeleton';
+import ErrorState from '@/components/ui/ErrorState';
 import { Search, Plus, Filter } from 'lucide-react';
 
 const ProjectList = () => {
@@ -55,10 +55,14 @@ const ProjectList = () => {
 
   return (
     <div className="max-w-7xl mx-auto py-4">
-      <ProjectHeader 
+      <PageHeader 
         title="My Projects" 
         subtitle="Manage your learning projects and roadmaps."
-        action={
+        breadcrumbs={[
+          { label: 'Home', path: '/dashboard' },
+          { label: 'Projects' }
+        ]}
+        actions={
           <button 
             onClick={() => navigate('/projects/new')}
             className="px-4 py-2 bg-primary hover:bg-primary-light text-white rounded-lg flex items-center gap-2 transition-colors font-medium shadow-lg shadow-primary/20"
@@ -115,10 +119,7 @@ const ProjectList = () => {
       {loading ? (
         <LoadingSkeleton />
       ) : error ? (
-        <div className="text-center py-12 text-red-400 bg-red-500/10 rounded-xl border border-red-500/20">
-          <p>{error}</p>
-          <button onClick={fetchProjects} className="mt-4 px-4 py-2 bg-surface rounded-lg text-white">Try Again</button>
-        </div>
+        <ErrorState message={error} onRetry={fetchProjects} />
       ) : projects.length === 0 ? (
         <EmptyProjects />
       ) : filteredProjects.length === 0 ? (

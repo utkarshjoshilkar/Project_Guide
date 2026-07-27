@@ -10,6 +10,8 @@ import { AuthContext } from '@/context/AuthContext';
 import { ProfileForm } from '@/features/student-profile/components/ProfileForm';
 import { useNavigate } from 'react-router-dom';
 import { ProfileFormData } from '@/types/profile';
+import PageHeader from '@/components/layout/PageHeader';
+import LoadingState from '@/components/ui/LoadingState';
 
 const EditProfile = () => {
   const { profile, loading, refreshProfile } = useContext(AuthContext);
@@ -65,7 +67,7 @@ const EditProfile = () => {
   }, [profile, loading]);
 
   if (loading || !initialData) {
-    return <div className="flex justify-center items-center h-64">Loading profile...</div>;
+    return <LoadingState message="Loading profile..." />;
   }
 
   const handleSuccess = async () => {
@@ -75,15 +77,20 @@ const EditProfile = () => {
 
   return (
     <div className="max-w-4xl mx-auto py-8">
-      <div className="mb-8 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-text-main mb-2">Edit Profile</h1>
-          <p className="text-text-muted">Update your details to refine your recommendations.</p>
-        </div>
-        <button onClick={() => navigate('/profile')} className="px-4 py-2 bg-surface hover:bg-surface-light border border-white/10 rounded-lg text-sm transition-colors">
-          Cancel
-        </button>
-      </div>
+      <PageHeader 
+        title="Edit Profile"
+        subtitle="Update your details to refine your recommendations."
+        breadcrumbs={[
+          { label: 'Home', path: '/dashboard' },
+          { label: 'Profile', path: '/profile' },
+          { label: 'Edit' }
+        ]}
+        actions={
+          <button onClick={() => navigate('/profile')} className="px-4 py-2 bg-surface hover:bg-surface-light border border-white/10 rounded-lg text-sm transition-colors">
+            Cancel
+          </button>
+        }
+      />
       <ProfileForm initialData={initialData} isEditMode onSuccess={handleSuccess} />
     </div>
   );

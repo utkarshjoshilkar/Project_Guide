@@ -51,7 +51,7 @@ export const useRoadmapGeneration = (projectId: number) => {
 
   // Message cycler during 'GENERATING'
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (status === 'GENERATING') {
       setLoadingMessageIndex(0);
       interval = setInterval(() => {

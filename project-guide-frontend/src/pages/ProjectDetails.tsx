@@ -9,11 +9,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { projectService } from '@/services/projectService';
 import { ProjectResponse } from '@/types/project';
-import { ProjectHeader } from '@/features/projects/components/ProjectHeader';
+import PageHeader from '@/components/layout/PageHeader';
 import { ProjectStatusBadge } from '@/features/projects/components/ProjectStatusBadge';
 import { DifficultyBadge } from '@/features/projects/components/DifficultyBadge';
 import { DeleteProjectModal } from '@/features/projects/components/DeleteProjectModal';
 import { RoadmapStatusCard } from '@/features/projects/components/RoadmapStatusCard';
+import ErrorState from '@/components/ui/ErrorState';
+import LoadingState from '@/components/ui/LoadingState';
 import { ArrowLeft, Edit2, Trash2, Calendar, Layers, CheckSquare, Clock } from 'lucide-react';
 
 const ProjectDetails = () => {
@@ -57,48 +59,39 @@ const ProjectDetails = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64 text-text-muted">
-        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full"></div>
-      </div>
-    );
+    return <LoadingState message="Loading project details..." />;
   }
 
   if (error || !project) {
     return (
-      <div className="text-center py-12 text-red-400 bg-red-500/10 rounded-xl border border-red-500/20 max-w-3xl mx-auto">
-        <p>{error}</p>
-        <button onClick={() => navigate('/projects')} className="mt-4 px-4 py-2 bg-surface rounded-lg text-white">
-          Back to Projects
-        </button>
-      </div>
+      <ErrorState 
+        message={error || 'Project not found.'} 
+        onRetry={() => navigate('/projects')} 
+      />
     );
   }
 
   return (
     <div className="max-w-5xl mx-auto py-4">
-      <button 
-        onClick={() => navigate('/projects')}
-        className="flex items-center gap-2 text-text-muted hover:text-white transition-colors mb-6 text-sm"
-      >
-        <ArrowLeft size={16} />
-        Back to Projects
-      </button>
-
-      <ProjectHeader 
+      <PageHeader 
         title={project.title} 
-        action={
+        breadcrumbs={[
+          { label: 'Home', path: '/dashboard' },
+          { label: 'Projects', path: '/projects' },
+          { label: 'Project Details' }
+        ]}
+        actions={
           <div className="flex gap-3">
             <button 
               onClick={() => navigate(`/projects/${project.id}/edit`)}
-              className="px-4 py-2 bg-surface hover:bg-surface-light border border-white/10 text-white rounded-lg flex items-center gap-2 transition-colors font-medium"
+              className="px-4 py-2 bg-surface hover:bg-surface-light border border-white/10 text-white rounded-lg flex items-center gap-2 transition-colors font-medium shadow-sm"
             >
               <Edit2 size={16} />
               Edit
             </button>
             <button 
               onClick={() => setIsDeleteModalOpen(true)}
-              className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg flex items-center gap-2 transition-colors font-medium"
+              className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg flex items-center gap-2 transition-colors font-medium shadow-sm"
             >
               <Trash2 size={16} />
               Delete
