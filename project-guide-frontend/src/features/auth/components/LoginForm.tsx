@@ -42,7 +42,16 @@ export const LoginForm = () => {
 
     try {
       const response = await authService.login({ email, password });
-      login(response.jwt, response.user);
+      
+      let userData = { email };
+      try {
+        const payload = JSON.parse(atob(response.token.split('.')[1]));
+        if (payload.sub) userData.email = payload.sub;
+      } catch (e) {
+        // Fallback
+      }
+
+      login(response.token, userData);
       navigate('/dashboard');
     } catch (error: any) {
       setErrors({ 

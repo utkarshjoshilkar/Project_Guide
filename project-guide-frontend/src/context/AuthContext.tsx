@@ -47,12 +47,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       const token = localStorage.getItem('jwt');
-      const storedUser = localStorage.getItem('user');
+      const userString = localStorage.getItem("user");
 
-      if (token && storedUser) {
+      let storedUser = null;
+      if (userString && userString !== 'undefined' && userString !== 'null') {
+        try {
+          storedUser = JSON.parse(userString);
+        } catch (e) {
+          console.error('Failed to parse user from localStorage', e);
+          localStorage.removeItem('user');
+        }
+      }
+
+      if (token && token !== 'undefined' && token !== 'null' && storedUser) {
         setIsAuthenticated(true);
-        setUser(JSON.parse(storedUser));
+        setUser(storedUser);
         await fetchProfile(); // Fetch profile when user is verified
+      } else {
+        // Clean up bad state
+        localStorage.removeItem('jwt');
+        localStorage.removeItem('user');
       }
       setLoading(false);
     };

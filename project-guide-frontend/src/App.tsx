@@ -27,6 +27,7 @@ import ProjectList from '@/pages/ProjectList';
 import CreateProject from '@/pages/CreateProject';
 import EditProject from '@/pages/EditProject';
 import ProjectDetails from '@/pages/ProjectDetails';
+import RoadmapViewer from '@/pages/RoadmapViewer';
 
 function App() {
   return (
@@ -57,6 +58,7 @@ function App() {
                 <Route path="/projects/new" element={<CreateProject />} />
                 <Route path="/projects/:id" element={<ProjectDetails />} />
                 <Route path="/projects/:id/edit" element={<EditProject />} />
+                <Route path="/projects/:id/roadmap" element={<RoadmapViewer />} />
 
                 {/* 
                   Placeholders for future implementation:

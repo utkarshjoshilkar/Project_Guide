@@ -30,9 +30,7 @@ export const RoadmapStatusCard = ({ projectId }: RoadmapStatusCardProps) => {
   const navigate = useNavigate();
 
   const handleViewRoadmap = () => {
-    // In Phase 7, this will route to `/roadmaps/${roadmap?.id}` or `/projects/${projectId}/roadmap`
-    // For now, it's just a placeholder route.
-    navigate(`/dashboard`);
+    navigate(`/projects/${projectId}/roadmap`);
   };
 
   return (

@@ -51,7 +51,9 @@ export const ProfileForm = ({ initialData, isEditMode = false, onSuccess }: Prof
     if (!formData.branch) newErrors.branch = 'Branch is required';
     if (formData.skills.length === 0) newErrors.skills = 'At least one skill is required';
     if (!formData.careerGoal) newErrors.careerGoal = 'Career goal is required';
-    if (formData.cgpa < 0 || formData.cgpa > 10) newErrors.cgpa = 'CGPA must be between 0 and 10';
+    if (isNaN(formData.cgpa) || formData.cgpa < 0 || formData.cgpa > 10) newErrors.cgpa = 'CGPA must be a number between 0 and 10';
+    if (isNaN(formData.weeklyStudyHours) || formData.weeklyStudyHours < 1) newErrors.general = 'Please enter valid weekly study hours.';
+    if (isNaN(formData.currentSemester) || formData.currentSemester < 1 || formData.currentSemester > 8) newErrors.general = 'Please select a valid semester.';
     
     // URL Validation simple check
     if (formData.githubProfile && !formData.githubProfile.startsWith('http')) {
@@ -104,11 +106,11 @@ export const ProfileForm = ({ initialData, isEditMode = false, onSuccess }: Prof
           
           <ProfileSelect 
             label="Current Semester" 
-            value={formData.currentSemester} 
+            value={isNaN(formData.currentSemester) ? '' : formData.currentSemester} 
             onChange={e => handleChange('currentSemester', parseInt(e.target.value))}
             options={[1, 2, 3, 4, 5, 6, 7, 8].map(sem => ({ label: `Semester ${sem}`, value: sem }))}
           />
-          <ProfileInput type="number" step="0.1" label="Current CGPA" value={formData.cgpa} onChange={e => handleChange('cgpa', parseFloat(e.target.value))} error={errors.cgpa} />
+          <ProfileInput type="number" step="0.1" label="Current CGPA" value={isNaN(formData.cgpa) ? '' : formData.cgpa} onChange={e => handleChange('cgpa', parseFloat(e.target.value))} error={errors.cgpa} />
         </div>
       </div>
 
@@ -138,7 +140,7 @@ export const ProfileForm = ({ initialData, isEditMode = false, onSuccess }: Prof
               { label: 'Kinesthetic (Hands-on Projects)', value: 'Kinesthetic' }
             ]}
           />
-          <ProfileInput type="number" label="Weekly Study Hours" value={formData.weeklyStudyHours} onChange={e => handleChange('weeklyStudyHours', parseInt(e.target.value))} />
+          <ProfileInput type="number" label="Weekly Study Hours" value={isNaN(formData.weeklyStudyHours) ? '' : formData.weeklyStudyHours} onChange={e => handleChange('weeklyStudyHours', parseInt(e.target.value))} />
         </div>
       </div>
 

@@ -20,3 +20,31 @@ export interface RoadmapResponse {
   generatedAt: string;
   progressPercentage: number;
 }
+
+export interface MilestoneResponse {
+  id: number;
+  roadmapId: number;
+  title: string;
+  description: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  estimatedDurationHours: number;
+  completionPercentage: number;
+}
+
+export interface TaskResponse {
+  id: number;
+  milestoneId: number;
+  title: string;
+  description: string;
+  status: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  estimatedHours: number;
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+}
+
+export interface ResourceResponse {
+  id: number;
+  taskId: number;
+  title: string;
+  type: 'ARTICLE' | 'VIDEO' | 'COURSE' | 'DOCUMENTATION' | 'OTHER';
+  link: string;
+}

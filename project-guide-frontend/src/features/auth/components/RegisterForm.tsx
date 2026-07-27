@@ -48,12 +48,23 @@ export const RegisterForm = () => {
     setErrors({});
 
     try {
-      // Backend expects role to be strictly STUDENT or ADMIN. Defaulting to STUDENT.
       const payload = { fullName, email, password, role: 'STUDENT' };
-      const response = await authService.register(payload);
+      await authService.register(payload);
       
+      // The backend returns null for the token on register. 
+      // We must explicitly call login to get the JWT.
+      const loginResponse = await authService.login({ email, password });
+      
+      let userData = { email, fullName, role: 'STUDENT' };
+      try {
+        const payloadDecoded = JSON.parse(atob(loginResponse.token.split('.')[1]));
+        if (payloadDecoded.sub) userData.email = payloadDecoded.sub;
+      } catch (e) {
+        // Fallback
+      }
+
       // Auto-login after registration
-      login(response.jwt, response.user);
+      login(loginResponse.token, userData);
       navigate('/dashboard');
     } catch (error: any) {
       setErrors({ 

@@ -6,11 +6,6 @@
  */
 
 export interface AuthResponse {
-  jwt: string;
-  user: {
-    userId: number;
-    email: string;
-    role: string;
-    fullName: string;
-  };
+  message: string;
+  token: string;
 }
