@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ExpandCollapse } from './ExpandCollapse';
-import { ResourceCard } from './ResourceCard';
+import { ResourceList } from '@/features/resources/components/ResourceList';
 import { TaskWithResources } from '../hooks/useMilestones';
 import { TaskResponse } from '@/types/roadmap';
 import { Clock, AlertCircle } from 'lucide-react';
@@ -14,10 +14,10 @@ interface TaskCardProps {
 }
 
 export const TaskCard = ({ task, milestoneId, onExpand, onUpdateTask }: TaskCardProps) => {
+  const [hasExpanded, setHasExpanded] = useState(false);
+
   const handleExpand = () => {
-    if (!task.resources && !task.loadingResources) {
-      onExpand(milestoneId, task.id);
-    }
+    setHasExpanded(true);
   };
 
   const getPriorityColor = (priority?: string) => {
@@ -65,34 +65,8 @@ export const TaskCard = ({ task, milestoneId, onExpand, onUpdateTask }: TaskCard
 
   return (
     <ExpandCollapse title={TaskTitle} onExpand={handleExpand}>
-      <div className="pl-9 space-y-3">
-        <h5 className="text-sm font-medium text-text-main mb-3">Learning Resources</h5>
-        
-        {task.loadingResources && (
-          <div className="animate-pulse space-y-2">
-            <div className="h-14 bg-surface rounded-lg"></div>
-            <div className="h-14 bg-surface rounded-lg"></div>
-          </div>
-        )}
-
-        {task.errorResources && (
-          <div className="flex items-center gap-2 text-red-400 text-sm bg-red-400/10 p-3 rounded-lg border border-red-400/20">
-            <AlertCircle size={16} />
-            {task.errorResources}
-          </div>
-        )}
-
-        {!task.loadingResources && !task.errorResources && (!task.resources || task.resources.length === 0) && (
-          <p className="text-sm text-text-muted italic">No specific resources provided for this task.</p>
-        )}
-
-        {task.resources && task.resources.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {task.resources.map(resource => (
-              <ResourceCard key={resource.id} resource={resource} />
-            ))}
-          </div>
-        )}
+      <div className="pl-9 pb-2">
+        {hasExpanded && <ResourceList taskId={task.id} />}
       </div>
     </ExpandCollapse>
   );

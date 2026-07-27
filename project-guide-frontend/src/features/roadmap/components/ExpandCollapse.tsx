@@ -21,12 +21,24 @@ export const ExpandCollapse = ({ title, children, onExpand, defaultExpanded = fa
   };
 
   useEffect(() => {
-    if (isExpanded) {
-      setHeight(contentRef.current?.scrollHeight);
-    } else {
+    if (!isExpanded || !contentRef.current) {
       setHeight(0);
+      return;
     }
-  }, [isExpanded, children]);
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setHeight(entry.target.scrollHeight);
+      }
+    });
+
+    resizeObserver.observe(contentRef.current);
+    
+    // Initial height set
+    setHeight(contentRef.current.scrollHeight);
+
+    return () => resizeObserver.disconnect();
+  }, [isExpanded]);
 
   return (
     <div className="border border-white/5 rounded-xl overflow-hidden bg-background/30 transition-colors hover:bg-background/50">
