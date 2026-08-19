@@ -3,6 +3,8 @@ package com.studentguide.platform.entity;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import com.studentguide.platform.github.entity.GitHubRepository;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -48,6 +50,14 @@ public class Project {
     // also deletes its Roadmap (and the cascade propagates to Milestones → Tasks → Resources).
     @OneToOne(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Roadmap roadmap;
+
+    @OneToOne(
+        mappedBy = "project",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true,
+        fetch = FetchType.LAZY
+    )
+    private GitHubRepository githubRepository;
 
     @Column(nullable = false, length = 150)
     private String title;
