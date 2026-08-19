@@ -35,7 +35,7 @@ const mapFormToRequest = (data: ProjectFormData): ProjectRequest => {
 
 export const projectService = {
   getAllProjects: async (): Promise<ProjectResponse[]> => {
-    const response = await apiClient.get<ProjectResponse[]>('/projects');
+    const response = await apiClient.get<ProjectResponse[]>('/projects/my');
     return response.data;
   },
 
