@@ -10,3 +10,15 @@ public interface GitHubRepositoryRepository extends JpaRepository<GitHubReposito
     Optional<GitHubRepository> findByProjectId(Long projectId);
     
 }
+
+
+
+
+
+
+
+
+
+
+
+
