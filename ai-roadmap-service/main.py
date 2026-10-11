@@ -2,8 +2,8 @@ from fastapi import FastAPI
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.controller.RoadmapController import router
-
+from app.controller.RoadmapController import router as roadmap_router
+from app.controller.CodeAnalysisController import router as code_analysis_router
 app = FastAPI(
     title="Project Guide AI Roadmap Service",
     version="1.0.0"
@@ -26,7 +26,8 @@ app.add_middleware(
 # -----------------------------
 # Register Routes
 # -----------------------------
-app.include_router(router)
+app.include_router(roadmap_router)
+app.include_router(code_analysis_router)
 
 @app.get("/")
 def home():

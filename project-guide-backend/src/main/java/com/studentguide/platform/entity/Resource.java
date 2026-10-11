@@ -35,6 +35,7 @@ public class Resource {
 
     // Each resource belongs to exactly one Task.
     // LAZY fetch prevents N+1 when loading task lists without resources.
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "task_id", nullable = false)
     private Task task;

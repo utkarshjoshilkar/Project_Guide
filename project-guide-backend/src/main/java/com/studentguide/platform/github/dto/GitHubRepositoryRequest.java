@@ -1,23 +1,17 @@
 package com.studentguide.platform.github.dto;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
 public class GitHubRepositoryRequest {
+
     private String repositoryUrl;
 
+    public GitHubRepositoryRequest() {
+    }
+
+    public String getRepositoryUrl() {
+        return repositoryUrl;
+    }
+
+    public void setRepositoryUrl(String repositoryUrl) {
+        this.repositoryUrl = repositoryUrl;
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
-

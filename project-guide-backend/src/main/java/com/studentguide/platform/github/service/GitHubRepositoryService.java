@@ -37,9 +37,8 @@ public class GitHubRepositoryService {
         StudentProfile profile = profileResolver.resolve(username);
 
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Project", "id", projectId));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Project", "id", projectId));
 
         ownershipValidator.assertOwnsProject(profile, project);
 
@@ -57,7 +56,8 @@ public class GitHubRepositoryService {
                         repositoryName);
 
         GitHubRepository githubRepository =
-                new GitHubRepository();
+                repository.findByProjectId(projectId)
+                        .orElse(new GitHubRepository());
 
         githubRepository.setProject(project);
         githubRepository.setRepositoryUrl(request.getRepositoryUrl());
@@ -69,13 +69,63 @@ public class GitHubRepositoryService {
         repository.save(githubRepository);
 
         return new GitHubRepositoryResponse(
-            githubRepository.getId(),
-            project.getId(),
-            githubRepository.getRepositoryUrl(),
-            githubRepository.getOwner(),
-            githubRepository.getRepositoryName(),
-            githubRepository.getDefaultBranch()
-        );
+                githubRepository.getId(),
+                project.getId(),
+                githubRepository.getRepositoryUrl(),
+                githubRepository.getOwner(),
+                githubRepository.getRepositoryName(),
+                githubRepository.getDefaultBranch());
+    }
+
+    public String getRepositoryPath(
+            String username,
+            Long projectId) {
+
+        StudentProfile profile = profileResolver.resolve(username);
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Project", "id", projectId));
+
+        ownershipValidator.assertOwnsProject(profile, project);
+
+        GitHubRepository githubRepository =
+                repository.findByProjectId(projectId)
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "GitHubRepository",
+                                "projectId",
+                                projectId));
+
+        return System.getProperty("java.io.tmpdir")
+                + "/project-guide/"
+                + githubRepository.getOwner()
+                + "/"
+                + githubRepository.getRepositoryName();
+    }
+
+    public String acquireRepository(
+            String username,
+            Long projectId) {
+
+        StudentProfile profile = profileResolver.resolve(username);
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Project", "id", projectId));
+
+        ownershipValidator.assertOwnsProject(profile, project);
+
+        GitHubRepository githubRepository =
+                repository.findByProjectId(projectId)
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "GitHubRepository",
+                                "projectId",
+                                projectId));
+
+        return acquisitionService.acquireRepository(
+                githubRepository.getOwner(),
+                githubRepository.getRepositoryName(),
+                githubRepository.getDefaultBranch());
     }
 
     private String[] extractRepositoryDetails(String repositoryUrl) {

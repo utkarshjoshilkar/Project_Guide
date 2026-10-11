@@ -41,6 +41,7 @@ public class Project {
 
     // Each project belongs to exactly one StudentProfile.
     // LAZY fetch means the profile is only loaded when accessed — avoids N+1 issues.
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_profile_id", nullable = false)
     private StudentProfile studentProfile;

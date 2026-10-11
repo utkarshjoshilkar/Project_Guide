@@ -40,6 +40,7 @@ public class Task {
 
     // Each task belongs to exactly one Milestone.
     // LAZY fetch avoids loading the full milestone graph on every task query.
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "milestone_id", nullable = false)
     private Milestone milestone;

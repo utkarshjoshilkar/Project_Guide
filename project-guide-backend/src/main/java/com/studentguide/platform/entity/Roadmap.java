@@ -37,6 +37,7 @@ public class Roadmap {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false, unique = true)
     private Project project;

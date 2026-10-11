@@ -14,6 +14,7 @@ import { ProjectStatusBadge } from '@/features/projects/components/ProjectStatus
 import { DifficultyBadge } from '@/features/projects/components/DifficultyBadge';
 import { DeleteProjectModal } from '@/features/projects/components/DeleteProjectModal';
 import { RoadmapStatusCard } from '@/features/projects/components/RoadmapStatusCard';
+import { GitHubAnalyzerCard } from '@/features/projects/components/GitHubAnalyzerCard';
 import ErrorState from '@/components/ui/ErrorState';
 import LoadingState from '@/components/ui/LoadingState';
 import { ArrowLeft, Edit2, Trash2, Calendar, Layers, CheckSquare, Clock } from 'lucide-react';
@@ -120,6 +121,9 @@ const ProjectDetails = () => {
 
           {/* AI Roadmap Module */}
           <RoadmapStatusCard projectId={project.id} />
+          
+          {/* GitHub Analyzer Module */}
+          <GitHubAnalyzerCard projectId={project.id} />
         </div>
 
         {/* Sidebar Metadata */}

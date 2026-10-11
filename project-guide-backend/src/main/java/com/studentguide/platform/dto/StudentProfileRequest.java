@@ -22,6 +22,7 @@ public class StudentProfileRequest {
     private String college;
 
     @NotBlank(message = "Branch is required")
+    
     @Size(max = 100, message = "Branch cannot exceed 100 characters")
     private String branch;
 

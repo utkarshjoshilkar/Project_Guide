@@ -3,3 +3,5 @@ uvicorn
 google-genai
 python-dotenv
 pydantic
+tree-sitter==0.23.1
+tree-sitter-java==0.23.4
