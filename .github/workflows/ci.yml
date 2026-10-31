@@ -1,0 +1,51 @@
+
+name: Project Guide - Backend CI
+
+# When should this workflow execute?
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+# Permissions required by this workflow
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Spring Boot Backend
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: project-guide-backend
+
+    steps:
+      # Step 1: Download repository source code
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      # Step 2: Install Java 17
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      # Step 3: Verify Java and Maven
+      - name: Verify Java and Maven
+        run: |
+          java -version
+          mvn -version
+
+      # Step 4: Build, test and package
+      - name: Build and test with Maven
+        run: mvn -B clean verify
