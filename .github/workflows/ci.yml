@@ -1,4 +1,3 @@
-
 name: Project Guide - Backend CI
 
 # When should this workflow execute?
@@ -49,3 +48,32 @@ jobs:
       # Step 4: Build, test and package
       - name: Build and test with Maven
         run: mvn -B clean verify
+
+
+  frontend:
+    name: Build React Frontend
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: project-guide-frontend
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: project-guide-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Build frontend
+        run: npm run build
